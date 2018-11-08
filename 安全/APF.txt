@@ -1,0 +1,1 @@
+APF: Advanced Policy Firewall，是 Rf-x Networks 出品的Linux环境下的软件防火墙。APF采用Linux系统默认的 iptables 规则。APF可以算是Linux中最出名的软件防火墙之一。

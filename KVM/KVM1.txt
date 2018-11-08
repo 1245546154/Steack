@@ -1,0 +1,116 @@
+ÈÈ¼ÓºÍÀä¼õ¡ªCPUºÍÄÚ´æ 
+
+virt-manager
+
+virsh list  
+
+virsh dominfo XXX(ÐéÄâ»úÃû³Æ)
+
+lscpu
+
+virsh edit XXX
+
+virsh setvcpus                  ²é¿´ÐéÄâ»úÅäÖÃÎÄ¼þ
+
+virsh setvcpus XXX 4 --live     ÈÈÔö¼ÓCPU 
+
+virsh setvcpus XXX  
+
+lscpu
+
+¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
+
+ÄÚ´æÆøÇò¼¼Êõ£¨Ê¹ÓÃvirtio_balloon£©
+
+virsh dumpxml  XXXX | grep memballoon -C 2
+
+virsh dumpxml 
+
+virsh qemu-monitor-command XXXX --hmp --cmd info balloon balloon:actual=1024  
+
+virsh qemu-monitor-command XXXX --hmp --cmd balloon 2048 
+
+virsh dumpxml XXXX  | less 
+
+
+
+
+
+¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
+
+²é¿´ÊÇ·ñÖ§³Ö°ëÐé»¯Çý¶¯
+
+virsh dumpxml XXXX  | grep interface -C2 
+
+virt-what 
+
+ethtool -i eth0
+ethtool -i ens3
+ip a s 
+
+
+
+virsh list 
+virsh domiflist XXXX
+virsh attacj-interface XXXX \
+--type network \
+--source default \
+--model virtio \
+--config     ÏÂ´ÎÌí¼Ó
+
+ip a s
+
+
+virsh domiflist XXXX
+
+
+¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
+
+ÐéÄâ½»»»»ú£¨Host Server£©
+
+virsh net-list --all 
+virsh net-info default 
+
+virsh net-list  
+
+virsh net-info default 
+
+brctl show 
+
+
+uuidgen      Éú³ÉUUID
+
+
+virsh --help | grep autostart
+
+virsh net-autostart XXXX
+
+virsh net-list  
+
+ip a s
+
+
+systemctl stop NetworkManager  
+
+systemctl disable NetworkManager 
+
+
+
+
+
+
+yum install nfs-utils recbind 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

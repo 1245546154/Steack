@@ -1,0 +1,264 @@
+ELK中的三个系统分别扮演不同的角色
+
+Filebeat：
+作为日志搜集器，主要是为了解决Logstash开销大的问题。相比Logstash，Filebeat 所占系统的 CPU 和内存几乎可以忽略不计。（作用于边缘）
+
+Logstash：
+是一个ETL工具，负责从每台机器抓取日志数据，对数据进行格式转换和处理后，输出到Elasticsearch中存储。
+
+Elasticsearch：（一拉斯科色吃）
+是一个分布式搜索引擎和分析引擎，用于数据存储，可提供实时的数据查询。
+
+Kibana：
+是一个数据可视化服务，根据用户的操作从Elasticsearch中查询数据，形成相应的分析结果，以图表的形式展现给用户
+
+————————————————————————————————————————————————————————
+
+splunk：一天收集的日志 只有500M是免费的，500M以上开始收费。
+
+
+ELK：开源日志分析系统
+      zabbix：企业级开源监控系统
+      elastic sreach： 全文检索
+      logstash：日志收集，日志过滤
+            对应了三个功能
+            input：
+            filter：
+            output：
+      Kibana： web展示功能
+
+
+安装filebeat  通过filebeat把日志传给logstash
+
+all in one 单机部署
+
+单机部署对应的是分布式部署或者说是集群
+
+rabbit mq：消息队列
+
+消息生产者   ——   消息队列   ——   消息消费者
+
+kafka：开源流处理平台
+
+
+
+
+ELK：一个完整的集中式日志系统，需要包含以下几个主要特点↓
+
+收集－能够采集多种来源的日志数据
+传输－能够稳定的把日志数据传输到中央系统
+存储－如何存储日志数据
+分析－可以支持 UI 分析
+警告－能够提供错误报告，监控机制
+
+-----------------------------------------------------------------------------------------------------------
+4444444444444444444444444444444
+所有服务器都需要时间同步 ntp 
+
+yum install java -y  #安装java
+yum install kibana-6.4.1-x86_64.rpm -y
+
+
+配置 kibana
+vim /etc/kibana/kibana.yml
+
+server.port: 5601                                #kibana默认端口
+server.host: "192.168.23.17"                     #本机IP
+server.name: "node4-kibana"                      #展示服务器名字
+elasticsearch.url: "http://192.168.23.16:9200"   #kibana服务端口9600 访问web界面填写elasticsearchIP
+kibana.index: ".kibana"                 #字段类型更新
+#elasticsearch.username: "user"         #elasticsearch用户名  
+#elasticsearch.password: "pass"         #elasticsearch密码
+#server.ssl.enabled: false              #证书（安全用）
+#elasticsearch.pingTimeout: 1500        #超时时间1500秒
+#elasticsearch.requestTimeout: 30000    #时间线
+
+systemctl start kibana
+
+netstat -lntp | grep 5601   #启动超级慢 需要等待。
+192.168.23.17:5601          #访问页面（需要配置elasticsearch）
+
+####################################################
+
+systemctl stop kibana
+
+Kibana_Hanization-master （汉化包）
+
+python main.py /usr/share/kibana/ 开始汉化
+
+systemctl start kibana
+
+-----------------------------------------------------------------------------------------------------------
+333333333333333333333333333333
+所有服务器都需要时间同步 ntp 
+
+yum install java -y  #安装java
+yum install elasticsearch-6.4.1.rpm -y
+
+vim /etc/elasticsearch/elasticsearch.yml
+
+#####Network #####   
+network.host: 192.168.23.16    #填写本机的IP地址      （端点用来提供服务的接口）
+http.port: 9200                #填写kibana的访问端口号
+
+systemctl start elasticsearch
+
+netstat -lntp | grep 9200      #启动超级慢 需要等待。
+netstat -lntp | grep java      #查看java进程
+
+
+
+-----------------------------------------------------------------------------------------------------------
+222222222222222222222222222222
+所有服务器都需要时间同步 ntp 
+
+yum install logstash-6.4.1.rpm
+
+vim /etc/logstash/logstash.yml       #配置文件中中间含有管道技术和队列技术
+
+
+node.name: node2-logstash
+http.host: "192.168.23.15"           #填写本机的IP地址
+http.port: 9600-9700                 #默认端口就行
+
+
+systemctl start logstash
+
+
+############################################################
+需要在logstash所在服务器上面创建索引脚本
+
+vim /etc/logstash/conf.d/logstash.conf    #添加索引文件
+
+input {
+  file {
+    path => "/var/log/messages"
+    start_position => "beginning"
+}
+}
+
+
+output {
+  elasticsearch {
+    hosts => ["192.168.23.16:9200"]
+    index => "test-%{+YYYY.MM.dd}"     #传输以test-时间命名的文件
+}
+}
+
+
+chmod 644 /var/log/messages  
+chmod 644 /etc/logstash/conf.d/logstash.conf
+
+
+############################################################
+
+登录 192.168.23.17:5601
+系统管理——索引模式——创建索引模式（等待发现索引）——选择时间过滤（@timestamp）
+
+点击（发现） 查看日志。。。
+
+
+-----------------------------------------------------------------------------------------------------------
+111111111111111111111111111111
+所有服务器都需要时间同步 ntp 
+
+yum install filebeat-6.4.1-x86_64.rpm  -y      #收集所有边缘服务器的日志信息
+
+vim /etc/filebeat/filebeat.yml
+
+enabled: true  #将flase 改为 true
+host: "192.168.23.17:5601"         #修改为kibana的IP地址
+
+#### Elasticsearch output ####    
+# output.elasticsearch:            #注释掉
+  # The Logstash hosts
+#  hosts: ["localhost:9200"]
+
+
+#### Logstash output ####      
+output.logstash:                   #打开注释
+  # The Logstash hosts
+  hosts: ["192.168.23.15:5044"]
+
+systemctl start filebeat.service
+
+
+
+############################################################
+
+需要在logstash所在服务器上面创建索引脚本
+
+vim /etc/logstash/conf.d/logstash.conf
+
+input {
+  beats {
+    port => "5044"
+}   
+}
+
+output {
+  elasticsearch {
+    hosts => ["192.168.23.16:9200"]
+    index => "test-%{+YYYY.MM.dd}"     #传输以test-时间命名的文件
+
+}     
+}
+
+登录 192.168.23.17:5601
+系统管理——索引模式——创建索引模式（等待发现索引）——选择时间过滤（@timestamp）
+
+点击（发现） 查看日志。。。
+
+
+
+############################################################
+安装nginx                            
+
+yum install nginx -y                #在filebeat服务器上安装nginx
+
+tail -f /var/log/nginx/access.log
+
+vim /etc/filebeat/filebeat.yml      #修改filebeat配置文件
+
+  paths:
+    - /var/log/nginx/*.log          #添加nginx日志路径到paths
+
+vim /etc/logstash/conf.d/logstash.conf    #修改logstash服务器上的脚本文件
+
+input {
+  beats {
+    port => "5044"
+}
+}
+
+output {
+   elasticsearch {
+      hosts => ["http://192.168.23.18:9200"]
+      index => "node2-filebeat-%{+YYYY.MM.dd}"
+}
+}
+
+
+
+systemctl restart filebeat.service     #在filebeat服务器上 重启服务
+
+systemctl start logstash.service     #在logstash服务器上 重启服务
+
+netstat -lntp | grep 5044            #在logstash服务器上查询filebeat服务
+
+
+
+
+vim /etc/nginx/nginx
+
+http {
+    log_format json '"@timestap":"%time_iso8691",'
+       '"host:""$server_addr",'
+       '"clientip":"$remote_addr",'
+       '"size":"$body_bytes_sent",'
+       '"responsetime":"$request_time",'
+       '"url":"$uri",'
+       '"agent":"$http_user_agent",'
+       '"status":"$status"';
+
+    access_log  /var/log/nginx/access.log  json;    #使用json格式化输出到access日志文件

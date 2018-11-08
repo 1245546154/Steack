@@ -1,0 +1,199 @@
+#函数定义
+# -*- coding:UTF-8 -*-
+def printStar():
+    print('*' * 10)
+
+def fun():
+    return '*' * 10   #return下面的命令都不会执行，一个程序只能存在一个returun
+
+--------------------------------------------------------------------------------------
+
+#在一个文件内定义好函数
+# -*- coding:UTF-8 -*-
+def jiafa(x,y):
+    return "%s + %s = %s" %(x,y,x + y)
+
+def jianfa(x,y):
+    return "%s - %s = %s" %(x,y,x - y)
+
+def chengfa(x,y):
+    return "%s * %s = %s" %(x,y,x * y)
+
+def chufa(x,y):
+    return "%s / %s = %s" %(x,y,x / y)
+
+#在另一个文件中（相同路径下）调用这个文件
+import day1
+day1.jianfa(10.24)    #减法
+
+--------------------------------------------------------------------------------------
+
+#异常处理
+# -*- coding:UTF-8 -*-
+import sys                   #调用系统模块
+try:                         
+    aa = open("aaaa", "r")   #打开这个文件只读
+except IOError:              
+    print("error")           #如果没有找到这个文件或者打开失败，则提示错误
+else:
+    print("isok")            #找到或者能打开则提示成功
+    aa.close()
+
+
+def fun (hum):
+  try:
+	if type(int(num)) == type 1
+
+
+--------------------------------------------------------------------------------------
+
+#内存使用率
+# -*- coding:UTF-8 -*-
+def neicun():
+    import time
+    while True :
+        time.sleep(1)
+        f1 = open('/proc/meminfo', 'r')
+        for lines in f1:
+            if lines.startswith("MemTotal:"):
+                memtotal = int(lines.split()[1])
+            if lines.startswith("MemFree:"):
+                memfree = int(lines.split()[1])
+                break
+        #print("%.2f%%" %(memfree / memtotal * 100))
+        print ("内存已使用%.2f%%"%((memfree / memtotal) * 100))
+
+print(neicun())
+
+--------------------------------------------------------------------------------------
+#判断是否为数字
+# -*- coding:UTF-8 -*-
+import sys
+def isNum(s):
+    for i in s:
+        if i in '0123456':
+            pass
+        else:
+            print("this is not NUM")
+            break                              #break跳出判断
+    else :                                 #跳出之后自动进入这个判断
+        print("this is  NUM")
+isNum (sys.argv[1])                   #调用函数
+
+--------------------------------------------------------------------------------------
+#函数加减
+def printStar(num=1):
+    print('#' * num)
+
+printStar(10)
+
+--------------------------------------------------------------------------------------
+#统计后台运行的进程
+import os
+
+def isNumb(x):
+    aa = False
+    for i in x:
+        if not i in "0123456789":
+            break
+    else:
+        aa = True
+    return aa
+
+def num():
+    sum = 0
+    l = os.listdir("/proc")
+    for i in l:
+        if isNumb(i):
+            sum += 1
+    return sum
+
+print(num())
+
+--------------------------------------------------------------------------------------
+#递归
+def fun(n):
+    if n == 0:
+        return 1
+    else:
+        return n * fun(n - 1)
+print(fun(5))
+
+--------------------------------------------------------------------------------------
+#递归计算证书和
+def fun(n):
+    if n == 101:
+        return 0
+    else:
+        return n + fun(n + 1)
+print(fun(1))
+
+--------------------------------------------------------------------------------------
+#随机密码生成器
+import string
+import random
+def key(num):
+    #aa=int(input("please input your key:"))
+    pwd = ''
+    all_choice = string.ascii_letters + string.digits
+    for i in range(num):
+        pwd += random.choice(all_choice)
+    print (pwd)
+
+key(3)
+
+--------------------------------------------------------------------------------------
+#用户输入位数随机密码生成器
+import string
+import random
+def key(num):
+    pwd = ''
+    all_choice = string.ascii_letters + string.digits
+    for i in range(num):
+        pwd += random.choice(all_choice)
+    print (pwd)
+
+key(int(input("please input your key:")))
+
+--------------------------------------------------------------------------------------
+#可以实现查看指定目录下的
+import os
+import sys
+def fun (path):
+    isdir,isfile,join = os.path.isdir,os.path.isfile,os.path.join
+    lsdir = os.listdir(path)
+    dirs = [i for i in lsdir if isdir(join(path,i))]
+    files = [i for i in lsdir if isfile(join(path,i))]
+    if dirs:
+        for d in dirs :
+            fun (join(path,d))
+    if files :
+        for f in files:
+            print (join(path,f))
+fun (sys.argv[1])
+
+--------------------------------------------------------------------------------------
+#wc统计文件
+# -*- coding:UTF-8 -*-
+def wordCount(s):
+    chars = len(s)
+    words = len(s.split())
+    lines = s.count('\n')
+    print (lines,words,chars)
+file = raw_input("abc")        #2.7需要加raw_
+s = open(file).read()
+wordCount(s)
+
+
+
+
+
+
+
+
+
+
+
+
+
+

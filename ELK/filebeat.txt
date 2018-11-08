@@ -1,0 +1,61 @@
+filebeat：   
+边缘采集日志服务器，收集日志给logstash，为logstash分担收集负担，由logstash统一整理发送给elasticsearch做分析和存储，用户使用kibana进行查看（由kibana做图形化输出）
+
+##需要添加所有主机名到hosts文件内##
+
+wget https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-6.4.2-x86_64.rpm
+
+yum -y install filebeat-6.4.2-x86_64.rpm
+
+/usr/local/kafka/bin/kafka-topics.sh --create --zookeeper 192.168.23.20:2181 192.168.23.16:2181 --replication-factor 2 --partitions 2 --topic filebeatone
+
+————————————————————————————————————————————————————————
+
+vim /etc/filebeat/filebeat.yml
+
+filebeat.inputs:
+- type: log
+  enabled: true                          #确认开启状态
+  paths:
+    - /var/log/nginx/*.log
+
+output.kafka:
+  # Array of hosts to connect to.
+  hosts: ["kafka-node1:9092"]            #本地主机名
+  topic: filebeatone                     #创建的topic会话
+  required_acks: 1
+
+
+
+["kafka-node1:9092,kafka-node2:9092"]    #hosts:位置中主机标识仅为主机名称，不能为主机IP地址
+
+systemctl enable filebeat
+systemctl start filebeat
+
+
+/usr/local/kafka/bin/kafka-console-consumer.sh  --bootstrap-server 192.168.23.20:9092 --from-beginning --topic filebeatone
+
+
+http://filebeat-node    #任意客户端访问filebeat-node上web服务
+
+
+/usr/local/kafka/bin/kafka-console-consumer.sh  --bootstrap-server 192.168.23.16:9092 --from-beginning --topic filebeatone
+
+————————————————————————————————————————————————————————
+
+vim /etc/logstash/conf.d/kafka.conf                 #修改logstash的脚本文件
+
+input {
+    kafka {
+      bootstrap_servers => "192.168.23.20:9092,192.168.23.16:9092"
+      topics => ["filebeatone"]
+    }
+}
+
+output {
+    elasticsearch {
+      hosts => ["192.168.23.20:9092","192.168.23.16:9092"]
+      index => "filebeatone-%{+YYYY.MM.dd}"
+      manage_template => false
+    }
+}

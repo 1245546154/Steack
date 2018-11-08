@@ -1,0 +1,42 @@
+防御原理
+DDoS deflate的原理是通过netstat命令找出 发出过量连接的单个IP，并使用iptables防火墙将这些IP进行拒绝。由于iptables防火墙拒绝IP的连接远比从Apache层面上来得高效，因此iptables便成了运行在Apache前端的“过滤器”。同样的，DDoS deflate也可以设置采用APF（高级防火墙）进行IP阻止。
+
+主要功能与配置：
+1、可以设置IP白名单，在 /usr/local/ddos/ignore.ip.list 中设置即可；
+
+2、主要配置文件位于?/usr/local/ddos/ddos.conf ，打开此文件，根据提示进行简单的编辑即可；
+
+3、DDoS deflate可以在阻止某一IP后，隔一段预置的时候自动对其解封；
+
+4、可以在配置文件中设置多长时间检查一次网络连接情况；
+
+5、当阻止IP后，可以设置Email提醒
+
+
+只要redis是用root启动的并且未授权的话，就可以通过set方式直接写入一个authorized_keys到系统的/root/.ssh/目录下实现免密码登陆他人的Linux服务器。从而达到入侵成功的效果。
+
+
+————————————————————————————————————————————————————————
+基于脚本的一种防御DDOS攻击的措施：
+
+wget http://www.inetbase.com/scripts/ddos/install.sh         #安装
+
+chmod +x install.sh
+./install.sh
+
+
+wget http://www.inetbase.com/scripts/ddos/uninstall.ddos     #卸载
+hmod +x uninstall.ddos
+./uninstall.ddos
+
+
+FREQ=1 				#检测的频率为1分钟
+NO_OF_CONNECTIONS=100 		#当单个IP超过100个连接请求时判定为DDOS
+APF_BAN=0  			#如果打算使用APF阻止IP，则设置为1 ##如果使用iptables，则设置为0；
+KILL=1 				#是否阻止
+EMAIL_TO="webmaster@bootf.com"  #接收邮件
+BAN_PERIOD=600			#阻止时长，10分钟
+
+
+
+

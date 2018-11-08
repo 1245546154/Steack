@@ -1,0 +1,134 @@
+安全防护：做好预演
+安全就是：需要一层一层一块一块做加固
+
+
+LUKS  Linux硬盘加密标准
+
+cryptsetup luksFormat /dev/sdb                #创建硬盘加密
+需要确认操作：YES （必须大写）
+需要填写加密密码：LIjiu5514989 （复杂性）
+
+cryptsetup luksOpen /dev/sdb disk_one         #磁盘映射
+ll /dev/mapper/disk_one                       #解密成功后，确认映射好的设备
+mkfs.xfs /dev/mapper/disk_one                 #格式化使用
+mount /dev/mapper/disk_one /mnt/              #挂载使用
+
+umount /mnt/
+cryptsetup luksClose /dev/sdb disk_one        #关闭
+
+
+什么是对称加密：只有一个密钥,用它进行加密, 也要用它进行解密
+————————————————————————————————————————————————————————————————————————————
+192.168.23.10：
+
+
+gpg2 -c file          		  #加密文件
+gpg2 -d /file          		  #解密文件
+
+
+gpg2 -k               		  #查询电脑上的公钥和私钥
+gpg2 --gen-key         		  #gpg2命令生成非对称加密的密钥
+
+Your selection? 1      		  #算法默认1         
+
+What keysize do you want? (2048)  #加密长度
+
+Key is valid for? (0) 1           #密钥过期时间
+Is this correct? (y/N) y          #确认
+
+Real name: lisiaaaaa        	  #5位以上 
+Real name: lisiaaaaa  		  #5位以上
+
+Email address: 1245546154@qq.com  #email地址
+
+Comment: @_@   			  #注释说明
+
+(O)kay                            #选 o
+
+需要输入两次，设置密码
+
+
+
+gpg2 -k
+gpg2 --export > lisi.asc  #导出公钥，后缀为.asc
+scp lisi.asc 192.168.23.115:/root
+
+#################################################################################################################################
+创建回收证书
+
+gpg2 -o cancellisihaha.asc --gen-revoke lisihaha        #产生一个回收公钥的证书
+scp cancellisihaha.asc 192.168.23.15:/root/             #传给要被回收的公钥方
+gpg2 --import /opt/cancellisihaha.asc                   #导入这个回收证书,就可以注销掉原来的证书
+
+
+gpg2 --delete-secret-keys lisihaha       #先删除私钥
+gpg2 --delete-keys lisihaha              #再删除公钥
+
+（公钥加密，私钥解密）
+（非对称加密的应用：主要适合网络的文件安全传输）
+
+————————————————————————————————————————————————————————————————————————————
+192.168.23.15：
+
+gpg2 --import /root/daniel.asc 
+gpg2 -k
+gpg2 -e -r lisihaha test2                  #并使用李四的公钥加密, -e代表非对称加密，-r参数后接公钥的名
+gpg2 -d test2.gpg                          #会使用自己的私钥去解密
+
+
+————————————————————————————————————————————————————————————————————————————
+
+
+数字签名：公钥认证，私钥签名
+A：
+gpg2 --gen-key                             #创建一个公钥
+gpg2 --export > zhangsan.asc               #公钥导入文件
+scp key.asc lisiIP:/opt/                   #将公钥上传给目标主机
+
+
+B：
+gpg2 --import /opt/zhangsan.asc            #目标主机导入公钥
+gpg2 -k                                    #查看公钥的信息
+gpg2 --sign-key 80A83A8B                   #使用自已的私钥来签名源主机的公钥
+
+
+A：
+gpg2 -u zhangsan -e -r lisihaha -s test3   #使用自己的私钥对其签名
+scp test3.gpg lisiIP:/opt/                 #加密并签名过的文件通过网络传输给目标主机
+
+
+B：
+gpg2 -d /opt/test3.gpg                     #使用自己的私钥对其解密并验证签名
+
+
+————————————————————————————————————————————————————————————————————————————
+
+
+SSL和CA认证 SSL/TLS是一组安全协议应用范围：  （网站或者软件应用）
+
+
+SSL：安全套接层及其继任者
+TLS：简单来说就是一组安全协议。
+
+https相对于http加强了安全保障，影响性能下降，而且不管什么证书都需要一定的费用。
+https(http+ssl)就是最常见的一种应用
+
+而且搭建或转换https需要额外的时间和人力成本。
+
+
+
+CA认证：CA认证网站真假，通过浏览器来的锁标识就可以告诉我们
+
+1. 安装web服务器相关软件包与SSL证书生成工具
+2. 生成key（私钥）和 certificate (证书，公钥)
+3. 在服务器配置文件里配置对应的key和certificate相关证书路径
+4. 启动服务
+5. 浏览器访问验证
+
+
+
+
+
+
+
+

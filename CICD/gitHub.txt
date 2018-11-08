@@ -1,0 +1,26 @@
+全球最大同性交友网站：github   目前已被微软收购
+gitHub是一个开源及私有软件项目的托管平台，只支持git所以叫github。
+
+便捷  全平台通用  开源   社区功能性良好 
+
+
+github windows 支持在本地和远程版本库之间同步
+
+ssh-kengen -t rsa
+
+git init 
+
+git add 
+
+git commit -m "123"
+
+git remote add origin https://github.com/shench5612390/Test.git
+
+git pull --rebase origin master
+
+git push -u origin master 
+
+
+注：测试的库文件 不能放在桌面上
+
+

@@ -1,0 +1,143 @@
+GlusterFS 可以轻松达到PB纪容量，数千个节点。
+GlusterFS 开源的分布式文件系统，是Scale存储的核心，能够处理千数量级的客户端。
+
+GlusterFS 通过TCP/IP 或者 InfiniBand RDMA网络连接将客户端的存储块聚集在一起，使用单一的全局命名空间来管理数据，磁盘和内存资源。
+
+GlusterFS 支持运行在任何标准的IP网络
+
+GlusterFS概念
+
+brick   GlusterFS基本单元，以节点服务器目录形式展现 
+
+Volume  多个bricks的逻辑集合
+
+Metadata  元数据，用于描述文件，目录等信息
+
+Self-heal  用于后台检测副本卷中文件和目录的不一致性并解决这些不一致。
+
+FUSE  Filesystem Userspace 
+
+GlusterFS Server 数据存储服务器，即组成GlusterFs存储集群的节点。
+
+文件系统由内核在控制，  我们只能做到去调用。
+
+
+
+#GlusterFS 常用类型
+
+A.(分布卷)也称为哈希卷，多个文件在多个 brick 上使用哈希算法随机存储。
+应用场景:   大量小文件
+优点：       读/写性能好
+缺点：       如果存储或服务器故障，数据将丢失
+不指定卷类型，默认是分布卷
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+B.（条带卷）
+
+将文件分成条带，存放在多个 brick上，默认条带大小128K
+应用场景:   大文件
+优点：       适用于大文件存储
+缺点：       可靠性低，brick 故障会导致数据全部丢失
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+C.（复制卷）
+多个文件在多个节点哈希存储，每个文件再分条带在多个brick上存储
+应用场景:   读/写性能高的大量大文件场景
+优点：       高并发支持
+缺点：       没有冗余，可靠性差
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+D.（分布条带卷）
+多个文件在多个节点哈希存储，每个文件再分条带在多个brick上存储
+应用场景:   读/写性能高的大量大文件场景
+优点：       高并发支持
+缺点：       没有冗余，可靠性差
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+E.（分布复制卷）
+多个文件在多个节点哈希存储，在多个brick 复制多份存储。
+应用场景: 大量文件读和可靠性要求高的场景
+优点： 高可靠性，读性能高
+缺点： 牺牲存储空间，写性能差
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+F.（条带复制卷）
+一个大文件存储的时候划分条带，并且保存多份。
+应用场景:   超大文件，并且对可靠性要求高
+优点：       大文件存储，可靠性高
+缺点：       牺牲存储空间，写性能差
+
+
+Brick Commands      #砖块命令
+Peer  Commands      #对等命令
+
+----------------------------------------------------------------------------------------------------------------
+#分布卷
+
+ntpdate             #所有机器同步时间
+
+vim /etc/hosts      #所有机器添加主机名和IP
+
+mkfs.xfs /dev/sdb   #格式化磁盘
+mkfs.xfs /dev/sdc
+mkfs.xfs /dev/sdd
+
+mkdir /gv1          #创建挂载点
+mkdir /gv2
+mkdir /gv3
+
+vim /etc/fstab                        #添加磁盘自动挂载
+/dev/sdb /gv1  xfs  defaults 0 0
+ 
+#配置glusterfs源
+[glusterfs]
+name=glusterfs
+baseurl=https://buildlogs.centos.org/centos/7/storage/x86_64/gluster-4.1/
+enabled=1
+gpgcheck=0
+
+yum -y install glusterfs-server samba nfs-utils rpcbind    #安装nfs 和 glusterfs外壳  和主程序
+
+rm -rf /var/lib/glusterd/*     #删除对等记录
+
+
+systemctl enable glusterd nfs-server rpcbind
+systemctl start glusterd nfs-server rpcbind
+
+
+gluster peer probe 192.168.23.14  #通过IP添加伙伴
+gluster peer probe 192.168.23.15  
+
+gluster peer probe node1          #通过主机名添加伙伴
+gluster peer probe node2
+gluster peer probe node3
+
+gluster peer status               #查看对等状态
+
+gluster peer detach node3         #删除伙伴
+
+
+#创建分布卷（hash卷）
+gluster volume create dis_vol \
+node1:/g1/sv1 \
+node2:/g1/sv1 \
+node3:/g1/sv1 force              #force 如果是根下目录需要强制
+
+gluster volume info dis_vol      #查看信息
+
+gluster volume start dis_vol     #启动卷
+glusrer volume stop  dis_vol     #停止卷
+glusrer volume delete dis_vol    #删除卷
+
+----------------------------------------------------------------------------------------------------------------
+#创建条带卷（复制卷）
+
+
+systemctl set-default multi-user.target   
+
+mount -t glusterfs node1:/dis_vol /gv    

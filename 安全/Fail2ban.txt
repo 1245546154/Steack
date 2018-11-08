@@ -1,0 +1,110 @@
+ssh防止暴力破解的方法：（Fail2ban如何防止暴力破解）
+
+ssh服务器免秘钥登录：
+密码足够复杂，不使用弱口令
+密码的长度要大于8位最好大于14位。密码的复杂度是密码要尽可能有数字、大小写字母和特殊符号混合组成。
+
+
+例如：15年出现的JAVA反序列化漏洞
+
+
+
+修改默认端口号：有效防范一些基础攻击
+
+————————————————————————————————————————————————————————————————————-——
+部署fail2ban：
+
+nmap 127.0.0.1     	   #扫描自己端口
+
+
+wget https://github.com/fail2ban/fail2ban/archive/0.8.14.tar.gz      
+tar -xf 0.8.14.tar.gz -C /usr/local/
+/usr/local/fail2ban-0.8.14
+python setup.py install
+
+
+grep chkconfig ./* -R --color
+cp files/redhat-initd /etc/init.d/fail2ban     
+chkconfig --add fail2ban
+service fail2ban start|stop
+
+
+
+/etc/fail2ban/action.d            #动作文件夹，内含默认文件。iptables以及mail等动作配置
+/etc/fail2ban/fail2ban.conf       #定义了fai2ban日志级别、日志位置及sock文件位置
+/etc/fail2ban/filter.d            #条件文件夹，内含默认文件。过滤日志关键内容设置
+/etc/fail2ban/jail.conf           #主要配置文件，模块化。主要设置启用ban动作的服务及动作阀值 
+
+
+
+
+——————————————————————————————————————————————————————————————————————
+设置条件：ssh远程登录5分钟内3次密码验证失败，禁止用户IP访问主机1小时，1小时该限制自动解除，用户可重新登录。
+
+
+vim /etc/fail2ban/fail2ban.conf
+91 gnoreip = 127.0.0.1/8 ::1
+100 bantime  = 600
+104 findtime  = 600
+
+
+
+vim /etc/fail2ban/jail.conf
+
+[DEFAULT]                                 #全局设置
+ignoreip = 127.0.0.1/8    10.10.10.0/24   #忽略的IP列表,不受设置限制  如果有二组以上用空白做为间隔
+bantime  = 600            		  #屏蔽时间，单位：秒（设置IP被封锁的时间）
+findtime  = 600          	          #这个时间段内超过规定次数会被ban掉（设定多长时间内达到最大次数就解锁。）
+maxretry = 3             	          #最大尝试次数
+backend = auto         		          #日志修改检测机制（gamin、polling和auto这三种）
+
+
+
+
+touch /etc/fail2ban/jail.d/sshd.conf
+
+[ssh-iptables]
+#enabled  = false
+enabled  = true
+filter   = sshd
+action   = iptables[name=SSH, port=ssh, protocol=tcp]
+           sendmail-whois[name=SSH, dest=you@example.com, sender=fail2ban@example.com, sendername="Fail2Ban"]
+#logpath  = /var/log/sshd.log
+logpath  = /var/log/secure
+#maxretry = 5
+maxretry = 3
+
+
+
+iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --name ROUTER-SSH  --update --seconds 1800 --hitcount 5 -j DROP
+
+iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --name ROUTER-SSH --set -j ACCEPT
+
+service iptables -L             #该命令如果返回防火墙规则
+> /var/log/secure 	        #清空该日志，从现在开始重新写
+
+service fail2ban retart
+
+iptables -L -n  	       		  #生成关于fail2ban的规则链
+fail2ban-client status        		  #来查看被屏蔽的情况
+fail2ban-client status ssh-iptables       #来查看具体被屏蔽的情况
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,83 @@
+git 目前是世界上最新免费的代码关系系统，免费开源。 
+工作区（Working Directory）   #创建的库文件夹
+版本库（Repository）          #工作区有一个隐藏目录.git
+
+
+
+
+mkdir  /root/git                      #创建了一个目录
+cd /root/git
+git init                              #初始化git   
+git add xxxx.text                     #使用git add添加文件到暂存区  
+git status                            #查看仓库状态
+git commit -m "new is test"           #提交版本库描述信息”
+
+设置用户名和邮箱（不加" "是获取）
+git config --global user.name "名字"    
+git config --global user.email "邮箱地址"
+
+
+
+
+修改库里面的文件之后再git status 重新查看文件状态  
+只要不使用git add上传文件  都只是临时性的（查看清楚之后，在使用git add上传即可）
+
+git status          	       #告诉你有文件被修改过
+git diff                       #可以查看修改内容。
+git log                        #命令显示从最近到最远的提交日志
+git log --pretty=oneline       #只输出快照名和描述信息
+git reset --hard HEAD          #返回上一个版本
+
+git reset --hard 63d7c5bb169423f11f58f3084abec80da80b5cb6    #返回固定版本
+
+版本号没必要写全，前几位就可以了，Git会自动去找。当然也不能只写前一两位，因为Git可能会找到多个版本号，就无法确定是哪一个了  写前7位。
+
+
+git reflog      #用来记录你的每一次命令
+
+######################################################################
+
+第一次修改 -> git add -> 第二次修改 -> git add -> git commit在提交，两次就都更改生效了。
+
+git add                   #把文件添加到暂存区
+git commit                #提交暂存区的文件进行更改
+git checkout -- 文件名    #可以丢弃工作区的修改
+
+
+git reset                 #命令既可以回退版本，也可以把暂存区的修改回退到工作区。当我们用HEAD时，表示最新的版本
+
+rm -rf   文件名     		 #直接删除源文件
+git rm   文件名        		 #在暂存区删除
+git commit -m "rm test"          #提交更改
+
+
+######################################################################
+
+git checkout -b dev          #创建分支dev
+git branch                   #查看分支（所在分支前面会有*）
+git add git.txt              #提交刚才的内容到暂存区
+git commit -m "new dev"      #提交刚才的内容到版本库
+
+git checkout master          #分支工作完成，切换为master分支
+git branch                   #查看分支（所在分支前面会有*）
+git merge dev                #把dev分支的工作成果合并到master分支上
+
+git branch -d dev            #删除dev分支
+git branch                   #查看分支
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

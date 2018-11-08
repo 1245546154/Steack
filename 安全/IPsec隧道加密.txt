@@ -1,0 +1,73 @@
+搭建VPN  IPSEC加密
+#注意左右的配置不同，lift和right 左右两边配置不一样，但是conf配置文件必须一致
+
+
+yum install libreswan -y          		 #安装
+
+rm /etc/ipsec.d/*.db -rf         		 #删除之前的key文件
+ipsec initnss                     		 #初始化NSS数据库
+rm /etc/ipsec.secrets -rf               	 #删除之前的key文件
+
+ipsec newhostkey --output /etc/ipsec.secrets     #产生新的key
+
+ipsec showhostkey --left --ckaid b24219f0e84b0aaa6e3b054c707e1993c0c1c78d
+
+vim /etc/ipsec.d/sz-to-bj.conf        		 #修改ipsec配置文件
+
+
+
+
+###########################################################################################################
+
+
+
+yum install libreswan -y
+
+rm /etc/ipsec.d/*.db -rf
+ipsec initnss
+rm /etc/ipsec.secrets -rf
+
+ipsec newhostkey --output /etc/ipsec.secrets
+
+ipsec showhostkey --right --ckaid 997e47b056620e595054274bbc2906d35fc87a96
+
+vim /etc/ipsec.d/sz-to-bj.conf
+
+
+
+
+###########################################################################################################
+
+vim /etc/ipsec.d/sz-to-bj.conf ↓↓↓↓↓↓↓↓↓↓
+
+
+
+conn VPNS           #一个vpn连接的名称，名字随意
+
+        leftid=@vpna                    #左vpn的id标识，按格式，名字随意
+        left=192.168.23.100             #左vpn的公网ip
+        leftsubnet=192.168.182.0/24     #左vpn的内网网段
+        leftrsasigkey=0sAwEAAbQYJRB2Kccr9UgZj7xaZAFPUAG/kGUFyYC6OSpZNM7n4ZpFfdfVzuxGaPyS9QgUxfcAXoUSszYRuQktHYHwBfPczxK5UU8Wqoz5+VCt7Zn3a0uvwCxe0PQna+zwx2YeZqsC82Hv0Nzm9f69KofLNaNK2Wd4mEMFwMrGQRS0H1w3q6H9C6h0zSJvt/V+vXHeZBmVBqfEvQUJPd08NA5L6kJKZ1s5X/06iPKa/UKECqc9pHKiLQ1AR3M1QOtq7B/FbMmvDE6aG+WPvaNDKyT1WohwHFfpaNdjzplfYZt77W+LaKbOQOIzP4vPjSU50X4EEdZFTb94R7mXmoGOb2NeDrYEnmBGMyNZB4a8u8gvoaiQtCDv64+SFwLolnmqVSgkGWXoHgDjZ/lvOl72F8FZQOjViB0eXFkY5G8LzXQ0nKoUT0wR4rZO82NcxGqQW8/VhuMQ9GG817H5mTZ0Ze92innghFjB3oGqsoTWFQNM/XH8RZlSN0YMiNQzapI9KESkZvHUCY/LVZTU+ar7YeCMFURmMOKN9FLqB3sNRYDARu6wPN6lDtnQrY05dEWiKEoUnVrjihg/3Bi3mS5L019+NO3F1gW9XH9vuLruGTvjicklhzPn8dPKoUebipvAbM14JQ==
+
+
+        rightid=@vpnb                      #右vpn的id标识，按格式，名字随意
+        right=192.168.23.200               #右vpn的公网ip
+        rightsubnet=192.168.64.0/24        #右vpn的内网网段
+
+        rightrsasigkey=0sAwEAAdYMstQ9eW4bk+nQaJy6/GUCs4ehDwo+S16N2HKJ7ZrH/STpku/IIBxIxXbEmf/0du4GbIc7eJWgbDhT/7ehbmhxZwa76LnDIo5RZzRdxh3C1vCkNg/OVLAz5QgviipUh/ZO1wTKNkrGXHkLp6Sx+A5+K2/5HgAmOGg2QpcJQu/JO2n3FCCSNBF1Qu1CBKRqNB4XcGFshE4PVKYuYyuT+UhE6au4puIZ40RPiW1fMQT3JNiil3G5SQ3DVkdoVQdJDruswtuD5tRt9jjkn+TvRI1WsWK86tH/yzoYFuQZUznAOLgOyuTFRTSpWm/hneT1GKZaVPvEG0C/XYfcc9M48tUt3rhcOG4AX9hAs3KosqH9hhMwTzqq/Mt5KfVxGHGbC2yibFNn5aT5y7NEV75nDxqVcRwMaNUcTPpxW2Fpk6ejCnMSPrsDACwiRkO0AZ4GfYeYnFX25FdC9tLMf9Rh5Hm1Q1kYVW4TxY23BPvVutP0AL2IDqMivxLK5hFVtYzhHWgFHAvuRUHAemOwwbB6JLnCc7v9UE7yb2zlnfxpCxFRkYlbDVfhQab9YrEn0jfDb3qy/gBx987FPpS0fB4OUBJ8SmnYO9Zhnd9tq5jBO5ujbY0KDTdc1f0zs/LCgtwnumAr
+
+        auto=start           #启动服务时，会自动启动这个连接
+
+
+###########################################################################################################
+
+scp /etc/ipsec.d/sz-to-bj.conf 192.168.72.129:/etc/ipsec.d/       #直接上传过去就完事了
+
+systemctl start ipsec
+
+systemctl enable ipsec.service
+
+tcpdump -i ens33 host 192.168.23.100 and 192.168.23.200 -n        #抓包查看是否加密
+
+
+

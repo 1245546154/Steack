@@ -1,0 +1,75 @@
+调度器
+负载均衡器
+
+主主同步
+
+CND 缓存机制，与nginx的代理机制有点像。 
+
+zabbix 做监控
+
+备份
+
+持续化发布：发布网站
+
+对日志进行分析：ELK    使用图形化界面用来体现（PV UV IP访问量）
+
+KVM虚拟化   
+
+
+容器技术
+
+qitlab
+
+jenkins 
+
+sersync + rsync 
+
+
+共享存储上面  git
+
+
+线下存储：
+文件级存储 lvm raid nfs 
+会计存储   sicsi ceph  alusterfs
+对象存储  
+
+线上存储：
+七牛云存储
+阿里云存储  
+
+存储数据库
+sql 
+nosql
+mysql
+orcale
+sql
+db2
+postgresq
+mariadb
+alisql
+
+
+memcache  能做分布式，但是却是伪分布式
+redis 做集群
+mongdb 也可以做集群
+
+
+lvm
+raid #本地磁盘管理
+nfs  #本地磁盘远程管理
+samba  
+ftp
+
+ISCIS 块设备存储
+
+分布式存储
+moosefs 
+glusterfs
+hdfs
+qfs
+
+ceph
+
+
+
+

@@ -1,0 +1,39 @@
+Jenkins：持续集成工具（用于监控持续重复的工作）
+
+Jenkins功能包括：
+1、持续的软件版本发布/测试项目。
+2、监控外部调用执行的工作。
+
+jenkins通过“管理插件”模块安装必需的插件
+
+通过web页面进行配置
+
+构建项目等
+
+
+
+
+
+yum install wget java                     #需要安装java开发环境
+ 
+wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+
+rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+
+yum makecache
+
+yum -y install jenkins
+
+service jenkins start
+
+less /var/lib/jenkins/secrets/initialAdminPassword     #查看密码
+ca228f01cf70464c86f314ec6bbee97b        
+
+
+
+http://192.168.23.60:8080/         #访问网页
+
+填入密码——安装插件
+
+
+

@@ -1,0 +1,54 @@
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+NAS配置
+
+服务端：
+rpm -qa | grep nfs
+rpm -qa | grep rpcbind
+
+yum -y install nfs-utils rpcbind
+yum install -y nfs-server
+mdkir /xxx/xxx
+vim /etc/exports (写入以下内容)
+/xxx/xxx *(rw,sync,no_root_squash)
+chmod o+w /xxx/xxx/
+showmount -e 
+
+systemctl start nfs.service
+systemctl restart nfs rpcbind
+systemctl start rpcbind
+
+
+客户机：
+yum -y install nfs-util rpcbind
+
+
+showmount -e 192.168.23.9       #/md2/public*  表示成功  export
+mount -t nfs 192.168.23.9/:md2/public /mnt
+df -h 
+chmod o+w /xxx/xxx/
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+服务端：
+
+rpm -qa | grep ^samba
+yum -y install samba
+
+vim /etc/samba/smb.conf
+path = /var/spool/samba  本地的共享目录
+browseable = no  隐藏
+writable = yes   写
+read only =yes   读
+
+useradd admin
+passwd admin
+
+smbpasswd -a admin
+
+systemctl restart nmb.service
+systemctl restart smb.service
+
+服务端：
+
+smbclient -L //192.168.23.9 

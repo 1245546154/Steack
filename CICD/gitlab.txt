@@ -1,0 +1,50 @@
+°²×°Ö÷³ÌÐò£º
+yum install -y gitlab-ce
+
+gitlab-ctl reconfigure
+gitlab-ctl stop
+gitlab-ctl status
+
+¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
+ºº»¯£ºone
+
+vi ~/.bashrc
+alias rm='cp -i'
+unalias cp
+tar -xvf gitlab.tar
+
+cat /opt/gitlab/embedded/service/gitlab-rails/VERSION      #²é¿´Èí¼þ°æ±¾
+cat gitlab-10-3-stable-zh/VERSION                          #²é¿´ºº»¯°æ±¾
+cp -r /opt/gitlab/embedded/service/gitlab-rails{,.ori}     #ÏÈ±¸·ÝÎÄ¼þ
+cp -r -f * /opt/gitlab/embedded/service/gitlab-rails/      #¿½±´ºº»¯Ö±½ÓÕÚ¸Ç
+
+gitlab-ctl reconfigure
+gitlab-ctl restart
+gitlab-ctl status
+
+
+
+½â¾ö404ÎÊÌâ£º
+ÐÞ¸Ä/etc/gitlab/gitlab.rbÖÐµÄ# unicorn['port'] = 8080¶Ë¿Ú²¢ÖØÆôsudo gitlab-ctl reconfigure
+
+¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
+ºº»¯£ºtwo
+
+git fetch
+echo $gitlab_version
+head -1 /opt/gitlab/version-manifest.txt
+
+
+git diff v${gitlab_version} v${gitlab_version}-zh > ../${gitlab_version}-zh.diff
+gitlab_version=$(cat /opt/gitlab/embedded/service/gitlab-rails/VERSION)
+patch -d /opt/gitlab/embedded/service/gitlab-rails -p1 < ../11.3.0-zh.diff
+
+¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
+
+vim /etc/gitlab/gitlab.rb                #ÐÞ¸ÄÅäÖÃÎÄ¼þ
+
+13 external_url 'http://192.168.23.50'   #¸ü¸Ä·ÃÎÊµÄurl
+
+
+
+

@@ -1,0 +1,5 @@
+ls /sys/class/scsi_host/     #扫描到多少就重新刷新多少
+
+echo "- - -" > /sys/class/scsi_host/host0/scan
+echo "- - -" > /sys/class/scsi_host/host1/scan
+echo "- - -" > /sys/class/scsi_host/host2/scan

@@ -1,0 +1,23 @@
+#系统自带模块和用户自定义模块，（每个项目都应该有属于自己的模块）
+pip install paraniko            #安装模块
+
+
+import sys
+sys.path                                              #列出所有的环境变量
+sys.argv[1]                                           #shell里面的$1 
+sys.path.append("/usr/local/python366/file/root/")    #添加一个目录到环境变量
+
+
+import os
+os.listdir(path)               #列出所有子目录和文件
+os.rename('aaaa','bbbb')       #更改文件名称把aaaa改成bbbb
+
+import shutil
+shutil.copy('/aaaa','/bbbb')                 #linux里面的cp命令
+shutil.copytree('/root/目录','/home/目录')   #同上拷贝目录用
+shutil.move('/home/aaaaa','/root/bbbbb')     #移动文件
+
+import psutil
+psutil.cpu_count    #cpu状态
+
+

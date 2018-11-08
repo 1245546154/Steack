@@ -1,0 +1,91 @@
+syV systemd
+Zone:指防火墙方案,就是一套规则集，你可以配置多套规则集，按需求切换使用。
+
+
+drop：		拒绝所有外部连接请求。
+block：		拒绝所有外部连接，允许内部发起的连接。
+public：	适用公共环境，拒绝所有外部连接请求，但指定外部连接可以进入。
+external：	特别适用路由器启用了伪装功能的外部网。拒绝所有外部连接请求，只能接收经过选择的连接。
+dmz：		用于您的非军事区内的电脑，此区域内可公开访问，可以有限地进入您的内部网络，仅仅接收经过选择的连接。（受限制的公共连接可以进入）。
+work：		适用于工作网络环境，概念和workgoup一样，也是指定的外部连接允许用于工作区。
+home：		类似家庭组,用于家庭网络。您可以基本信任网络内的其他计算机不会危害您的计算机。仅仅接收经过选择的连接。
+internal：	用于内部网络。您可以基本上信任网络内的其他计算机不会威胁您的计算机。仅仅接受经过选择的连接
+trusted：	可接受所有的网络连接。
+
+
+http:tcp/80
+https:tcp/443
+ftp:tcp/21    主动（tcp/20）被动（制定随机端口范围）
+dns:tcp/53,udp/53
+samba:tcp/139,tcp445
+邮件:smtp:tcp/25  pop3:110,imap:143
+mysql:3306
+mycat:8066 9066
+nfs:111,2049，随机端口
+rsync:tcp/873,tcp/22
+
+
+
+firewall-cmd --get-default-zone 　		#查看当前使用的zone
+
+firewall-cmd --set-default-zone=work            #修改当前使用的zone
+firewall-cmd --set-default-zone=public        
+
+
+firewall-cmd --get-active-zones    
+firewall-cmd --list-all                         #查看当前使用的zone的规则
+firewall-cmd --zone=work --list-all             #指定查看work这个zone的规则
+
+
+
+配置端口规则：
+firewall-cmd --add-port=80/tcp                  #允许tcp的80端口进来的通信
+firewall-cmd --remove-port=80/tcp               #删除上面的规则
+firewall-cmd --add-port=3000-3005/tcp           #允许3000-3005之间的所有端口通信
+firewall-cmd --remove-port=3000-3005/tcp        #删除上面的规则
+
+
+配置服务规则：
+firewall-cmd  --add-service=http              #允许http服务进来的通迅
+firewall-cmd  --remove-service=http           #删除上面的服务规则
+firewall-cmd  --add-service=ftp               #允许ftp服务进来的通迅
+firewall-cmd  --remove-service=ftp            #删除上面的服务规则
+
+
+
+iptables -P INPUT DROP/ACCEPT
+
+iptables -P OUTPUT DROP/ACCEPT
+
+
+
+
+
+iptables -A INPUT -p tcp --dport 21 -j ACCEPT           
+iptables -A OUTPUT -p tcp  --sport 21 -j ACCEPT
+
+iptables -A INPUT -p tcp --sport 20 -j ACCEPT  
+iptables -A OUTPUT -p tcp  --dport 20 -j ACCEPT
+
+
+
+iptables -A INPUT -p tcp --dport 3000:3005 -j ACCEPT
+iptables -A OUTPUT -p tcp --sport 3000:3005 -j ACCEPT
+
+
+
+多端口添加规则
+iptables -A IPPUT -p tcp -m multiport --dport 20,21,3000,3005 -j ACCEPT 
+iptables -A OUTPUT -p tcp -m multiport --sport 20,21,3000,3005 -j ACCEPT 
+
+
+
+只允许192.168.23.60的IP地址连接ssh，一分钟只能连接一次。
+firewall-cmd --add-rich-rule="rule family="ipv4" source address=192.168.23.60 service name=ssh limit value=1/m accept"
+
+
+只允许192.168.23.60访问我的http,但每分钟内只允许有两个连接
+firewall-cmd --add-rich-rule="rule family="ipv4" source address=192.168.23.60 service name="http" limit value=2/m accept"
+
+
+

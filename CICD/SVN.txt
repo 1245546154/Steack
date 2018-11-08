@@ -1,0 +1,99 @@
+
+SVN：版本控制系统
+
+SVN就是用于多个人共同开发同一个项目，大家共用资源。
+
+svn服务器有2种运行方式：独立服务器和借助apache运行。
+
+
+集中式管理的工作流程：
+集中式代码管理的核心是服务器，所有开发者在工作之前必须从服务器获取代码，然后开发，解决代码冲突，提交。所有的版本信息都放在服务器上，所有代码集中在核心服务器上。
+
+由于SVN没有自己的远程管理工具，只能上服务器上用命令行操作，故操作起来比较复杂。
+
+svn管家推出了windows版本和linux版本，直接使用图形化界面操作即可。
+
+
+————————————————————————————————————————————————————————————————————————————————————
+
+
+服务端
+service iptables stop
+mkdir /usr/local/svnrepo/cangku -p
+svnadmin create /usr/local/svnrepo/cangku
+
+cd /usr/local/svnrepo/cangku/
+ls -a
+
+vim /usr/local//svnrepo/cangku/conf/svnserve.conf
+12行 修改 anon-access = read 为 anon-access = write #前面不能有空格
+
+svnserve  -d  -r /usr/local/svnrepo/cangku/
+netstat -lntp | grep svnserve
+killall svnserve
+
+配置多库
+svnadmin create /usr/local/svnserve/cangku1   #创建多个仓库
+svnadmin create /usr/local/svnserve/cangku2
+
+svnserve -d -r /usr/local/svnserve            #绑定上一级的根库
+
+
+配置权限控制
+vim svnserve.con       #核心配置文件
+anon-access = write    #第一个是匿名权限 
+auth-access = write    #第二个是认证权限
+12 anon-access = write    
+20 password-db = passwd
+27 authz-db = authz
+
+
+vim passwd               #编写认证文件passwd
+[users]
+# harry = harryssecret
+# sally = sallyssecret
+admin = admin            #定义用户admin和huang密码分别是admin和123456
+huang = 123456
+
+
+vim authz    #编辑authz文件
+[/]
+admin = rw   #给予admin读写权限
+------------------------------------------------------------------------------
+
+客户端
+service iptables stop
+svnserve  -d  -r /usr/local/svnrepo/cangku/  #启动服务并指定.svn目录
+svn checkout svn://192.168.23.139/  /usr/local/svnrepo/cangku/   #远程连接上服务端
+
+
+mkdir /usr/local/dev/cangku -p   #创建上传目录
+cd /usr/local/dev/cangku/        #进入目录，查看是否有.svn
+
+ll -a     # 上传的目录必须有 .svn
+
+ svn switch --relocate svn://192.168.23.139/ svn://192.168.23.139/cangku       #修改原库的远程地址为新的地址，修改为新的根库下的文件 （下一级目录）前旧后新
+
+svn up --username admin --password 123456 --non-interactive  #测试权限
+
+------------------------------------------------------------------------------
+
+svn add 文件名       #添加文件
+svn revert 文件名    #删除刚刚添加的文件
+
+svn ci -m"写入备注"  #提交到远程仓库
+
+svn up               #回滚最后的版本
+
+svn merge -r  1|2|3  #回滚到指定版本
+
+------------------------------------------------------------------------------
+
+当项目有多个人开发时，修改了共同文件，但是在提交过程中版本号不一致，就出现了冲突。
+①文件不一致
+②文件一致，文件内容不一致
+
+输出-P 手动解决
+先修改冲突的文件。可能要和同事（冲突版本的提交者）进行沟通，确认有效的版本代码应是什么样的。修改好之后，再提交。来解决冲突。
+
+

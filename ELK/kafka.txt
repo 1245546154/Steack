@@ -1,0 +1,74 @@
+Broker：Kafka 集群包含一个或多个服务器，这种服务器被称为 broker
+Topic：每条发布到 Kafka 集群的消息都有一个类别，这个类别被称为 Topic。
+
+
+kafka版本 2.11.0 对应 ELK6.4.1
+
+kafka-node1:
+kafka-node2:
+
+——————————————————————————————————————————————————————
+kafka-node1:
+
+tar xf kafka_2.10-0.10.1.0.tgz
+mv kafka_2.10-0.10.1.0 /usr/local/kafka
+cd /usr/local/kafka/config
+
+
+
+vim server.properties
+
+broker.id=1                                               #选举1和2决定将数据转发给谁
+listeners=PLAINTEXT://node7:9092                          #填写本机主机：监听端口9092
+log.dirs=/var/log/kafka-logs                              #修改日志路径
+zookeeper.connect=192.168.23.20:2181,192.168.23.16:2181   #都写2181端口
+
+
+##########################################################################
+kafka-node2:
+
+tar xf kafka_2.10-0.10.1.0.tgz
+mv kafka_2.10-0.10.1.0 /usr/local/kafka
+cd /usr/local/kafka/config
+
+
+
+vim server.properties
+
+broker.id=2                                               #选举1和2决定将数据转发给谁
+listeners=PLAINTEXT://node3:9092                          #填写本机主机：监听端口9092
+log.dirs=/var/log/kafka-logs                              #修改日志路径
+zookeeper.connect=192.168.23.20:2181,192.168.23.16:2181   #都写2181端口
+
+
+——————————————————————————————————————————————————————
+
+
+ps aux | grep kafka
+
+netstat -anput | grep ":9092"
+
+tcp6       0      0 192.168.23.16:9092      :::*                    LISTEN      2994/java           
+tcp6       0      0 192.168.23.16:9092      192.168.23.20:58440     ESTABLISHED 2994/java           
+tcp6       0      0 192.168.23.16:34708     192.168.23.20:9092      TIME_WAIT   -                   
+tcp6       0      0 192.168.23.16:34688     192.168.23.20:9092      ESTABLISHED 2994/java           
+tcp6       0      0 192.168.23.16:9092      192.168.23.20:58452     ESTABLISHED 2994/java           
+tcp6       0      0 192.168.23.16:34706     192.168.23.20:9092      TIME_WAIT   - 
+
+
+
+主服务器上创建Topic：    
+/usr/local/kafka/bin/kafka-topics.sh --create --zookeeper 192.168.23.20:2181 192.168.23.19:2181 --replication-factor 2 --partitions 3 --topic mysqlone
+
+/usr/local/kafka/bin/kafka-topics.sh --create --zookeeper 192.168.23.20:2181 192.168.23.19:2181 --replication-factor 2 --partitions 2 --topic mysqltwo
+
+验证发布者broker：  （生产者发送）
+/usr/local/kafka/bin/kafka-console-producer.sh --broker-list 192.168.23.20:9092 --topic mysqlone
+
+
+
+在另一台服务器上创建一个订阅者consumer：   （消费者接受）
+/usr/local/kafka/bin/kafka-console-consumer.sh  --bootrap-server 192.168.23.20:9092 --from-beginning --topic mysqlone
+
+
+

@@ -1,0 +1,101 @@
+Elasticsearch承载了数据存储和查询的功能。
+
+部署ElasticStash-head插件:
+elasticsearch Head是集群管理、数据可视化、增删改查、查询语句可视化工具
+
+master-slave模式：
+master收集到日志后，会把一部分数据碎片到salve上（随机的一部分数据）；同时，master和slave又都会各自做副本，并把副本放到对方机器上，这样就保证了数据不会丢失。
+如果master宕机了，那么客户端在日志采集配置中将elasticsearch主机指向改为slave，就可以保证ELK日志的正常采集和web展示
+
+——————————————————————————————————————————————————————————
+es-node1:
+
+yum -y install elasticsearch-6.4.2.rpm
+
+vim /etc/elasticsearch/elasticsearch.yml
+
+http.cors.enabled: true                 #12行添加
+http.cors.allow-origin: "*"             #13行添加
+
+cluster.name: myescluster               #主从的集群命名必须一致
+
+node.name: node5                        #填写自己的主机名
+
+network.host: 192.168.23.18             #填写自己的IP即可     
+
+http.port: 9200                         #web访问的端口            
+
+discovery.zen.ping.unicast.hosts: ["192.168.23.18", "192.168.23.19"]    #master节点的初始列表，（可以使用主机名需要添加hosts文件用于解析） #两边配置需要一致
+
+discovery.zen.minimum_master_nodes: 1   #设置这个参数来保证集群中的节点可以知道其它N个有master资格的节点 默认为1，大集群可以设置2-4
+node.master: true                       #指定该节点是否有资格被选举为master
+
+discovery.zen.ping.timeout: 3s          #设置与其他节点的连接超时时间
+
+systemctl enable elasticsearch          #启动服务巨慢
+systemctl start elasticsearch
+
+
+curl -sL https://rpm.nodesource.com/setup_10.x | bash -     
+yum -y install nodejs                   #elasticsearch插件需要先安装nodejs
+npm install -g grunt -cli
+npm install
+
+
+vim /root/elasticsearch-head/Gruntfile.js
+
+93行 添加  hostname: '*',  添加
+
+vim elasticsearch-head/_site/app.js
+4354行 把localhost修改为elasticsearch服务器地址
+
+
+systemctl restart elasticsearch                #在elasticsearch-head启动之前要把elasticsearch先进行重启
+
+grunt server                                   #在elasticsearch-head下启动  访问19服务器IP的9100端口
+
+
+
+
+——————————————————————————————————————————————————————————
+es-node2:
+
+yum -y install elasticsearch-6.4.2.rpm
+
+vim /etc/elasticsearch/elasticsearch.yml
+
+http.cors.enabled: true                 #12行添加
+http.cors.allow-origin: "*"             #13行添加
+
+cluster.name: myescluster               #主从的集群命名必须一致
+
+node.name: node6                        #填写自己的主机名
+
+network.host: 192.168.23.19             #填写自己的IP即可     
+
+http.port: 9200                         #web访问的端口            
+
+discovery.zen.ping.unicast.hosts: ["192.168.23.18", "192.168.23.19"]    #master节点的初始列表，（可以使用主机名需要添加hosts文件用于解析） #两边配置需要一致
+
+discovery.zen.minimum_master_nodes: 1   #设置这个参数来保证集群中的节点可以知道其它N个有master资格的节点 默认为1，大集群可以设置2-4
+
+discovery.zen.ping.timeout: 3s          #设置与其他节点的连接超时时间
+
+systemctl enable elasticsearch          #启动服务巨慢
+systemctl start elasticsearch
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
