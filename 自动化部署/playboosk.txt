@@ -1,0 +1,169 @@
+#playbook 剧本的基础组件
+
+Playbook 文件必须是*.yaml or .yml*结尾。 (playbook借助yml)
+
+
+
+hosts:运行指定任务的目标主机，多个主机用:冒号分割
+
+ansible-playbook  --syntax-check web.yml    #检查文件
+
+ansible-playbook web.yml  #运行文件 
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+vim adduser.yml 
+
+---
+- hosts: 192.168.23.15
+  remote_user: root
+  tasks:
+  - name: user add
+    user: name=XXwww state=present
+
+
+
+vim adduser1.yml 
+
+---
+- hosts: smartgo
+  tasks:
+  - name: add group
+    group: name=numowengroup state=present
+- hosts: 192.168.23.15
+  tasks:
+  - name: copy file
+    copy: src=/etc/passwd dest=/tmp/HOSTS
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+vim http.yml
+ 
+---
+- hosts: webservers
+  tasks:
+  - name: install httpd
+    yum: name=httpd state=present
+  - name : restart
+    service: name=httpd state=restarted
+    notify:
+    - restart httpd
+  handlers:
+  - name: restart httpd
+    service: name=httpd state=restarted
+
+
+
+mkdir -pv rples/{websrvs,dbsrvs}/{tasks,files,templates,meta,handlers,vars}
+touch rples/websrvs/meta/main.yml
+cp /etc/httpd/conf/httpd.conf  rples/websrvs/files/
+
+
+yum install tree
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+体系结构：
+
+├── db.yml
+├── roles
+│   ├── dbsrvs
+│   │   ├── files
+│   │   ├── handlers
+│   │   ├── meta
+│   │   ├── tasks
+│   │   │   └── main.yml
+│   │   ├── templates
+│   │   └── vars
+│   └── websrvs
+│       ├── files
+│       │   ├── httpd.conf
+│       │   ├── indes.html
+│       │   └── index.html
+│       ├── handlers
+│       │   └── main.yml
+│       ├── meta
+│       ├── tasks
+│       │   └── main.yml
+│       ├── templates
+│       │   └── main.yml
+│       └── vars
+│          └── main.yml
+└── web1.yml
+
+
+tasts：     任务文件 main.yml
+vars：      变量的文件 main.yml
+templates： 模板文件 httpd.conf
+handlers：  变化后执行的文件 main.yml
+meta：      角色之间的关系 main.yml
+files：     普通的文件 index.html
+
+
+A.websrvs -----------------------------------------------------------------------------------------------------------------------------------------
+vim /root/web1.yml
+
+- hosts: webservers
+  roles:
+  - websrvs
+  - dbsrvs
+
+
+B.-----------------------------------------------------------------------------------------------------------------------------------------
+vim /root/roles/websrvs/tasks/main.yml 
+
+---
+- name: install httpd
+  yum: name=httpd
+
+- name: copy file
+  copy: src=/root/roles/websrvs/files/index.html dest=/var/www/html
+
+- name: template file
+  template: src=/root/roles/websrvs/files/httpd.conf dest=/etc/httpd/conf/httpd.conf
+
+  notify:
+  - Restart httpd
+- name: start httpd
+  service: name=httpd state=started
+
+
+C.-----------------------------------------------------------------------------------------------------------------------------------------
+vim /root/roles/websrvs/vars/main.yml
+
+httpd_ports: 8080
+
+
+D.-----------------------------------------------------------------------------------------------------------------------------------------
+vim /root/roles/websrvs/handlers/main.yml
+
+---
+- name: Restart httpd
+  service: name=httpd state=restarted
+...
+
+E.-----------------------------------------------------------------------------------------------------------------------------------------
+vim /root/roles/websrvs/files/index.html
+
+print:"test-shalebaji"
+
+
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
+
+
+
+F.dbsrvs
+-----------------------------------------------------------------------------------------------------------------------------------------
+vim /root/roles/dbsrvs/tasks/main.yml
+
+- name: install mariadb
+  yum: name={{ item }} state=latest
+  with_items:
+  - mariadb
+  - mariadb-server
+
+- name: start mariadb
+  service: name=mariadb enabled=yes state=started
+
+
+

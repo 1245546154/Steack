@@ -1,0 +1,102 @@
+端口：10050
+监控端：server  
+
+安装源：
+yum install httpd -y    #安装apache
+
+yum install php-common php-gd php-mbstring php-xml php-bcmath php-mysql php-cli php-devel php-pear -y     #安装php
+
+rpm -i http://repo.zabbix.com/zabbix/3.4/rhel/7/x86_64/zabbix-release-3.4-2.el7.noarch.rpm     #下载zabbix源
+
+yum install zabbix-server-mysql zabbix-web-mysql zabbix-agent mariadb-server -y    #安装服务   web服务   被监控端服务   数据库  
+
+systemctl start mariadb.service    #启动数据库文件
+
+
+mysql -uroot -p             #进入数据库 默认没有密码
+
+mysql> create database zabbix character set utf8 collate utf8_bin;         #创建zabbix库
+
+mysql> grant all on zabbix.* to zabbix@'localhost' identified by 'zabbix'; #创建zabbi用户
+
+mysql> flush privileges;    #刷新
+
+mysql> show databases:      #显示库
+
+mysql> \q                   #退出
+
+
+zcat /usr/share/doc/zabbix-server-mysql-3.4.14/create.sql.gz |mysql -uroot -p zabbix      #将create.sql.gz导入到zabbix库内
+
+vim /etc/zabbix/zabbix_server.conf     #配置zabbix文件
+
+DBHost=localhost             #本地
+　　　 DBName=zabbix         #数据库名称
+　　 　DBUser=zabbix         #数据库用户
+　　 　DBPassword=zabbix　　 #根据自己定义的信息修改
+
+vim /etc/httpd/conf.d/zabbix.conf    #修改zabbix配置文件中的时间
+         php_value date.timezone Asia/shanghai
+
+systemctl restart httpd                #启动apache
+systemctl restart zabbix-server        #启动监控端
+systemctl restart zabbix-agent         #启动被监控端
+
+
+http://192.168.23.10/zabbix          #web访问页面
+
+
+
+yum install zabbix-get.x86_64        #安装zabbix-get
+
+zabbix_get -s 192.168.23.15 -k  "system.uname"
+zabbix_get -s 192.168.23.15 -k  "system.cpu.load[all]"
+zabbix_get -s 192.168.23.15 -k  "system.cpu.load[all,avg5]"
+
+
+--------------------------------------------------------------------------------------------------------------------------
+
+被监控端：agent  
+rpm -i http://repo.zabbix.com/zabbix/3.4/rhel/7/x86_64/zabbix-release-3.4-2.el7.noarch.rpm 
+
+yum install zabbix-agent -y                            #安装被监控端
+
+vim /etc/zabbix/zabbix_agentd.conf                     #配置被监控端配置文件
+          PidFile=/var/run/zabbix/zabbix_agentd.pid    #源码安装的的时候需要写上
+          Server=192.168.23.10                         #监控端IP
+          # ListenPort=10050                           #端口可以不改
+          ServerActive=192.168.23.10                   #主动模式
+          Hostname=node3                               #填写被监控端自己的主机名
+
+比较重要的参数是ServerActive和Hostname，ServerActive是指定Agentd收集的数据往哪里发送，Hostname是必须要和Server端添加主机时的主机名一样，这样Server端接收到数据才能找到对应关系，即主动模式。
+
+systemctl start zabbix-agent.service                   #启动服务
+systemctl enable zabbix-agent.service                  #开机自启
+
+
+--------------------------------------------------------------------------------------------------------------------------
+#批量配置agent被监控端
+vim /root/zabbix.yml
+
+- hosts: webservers
+  tasks:
+  - name: shell
+    script: /root/aaa.sh
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+vim aaa.sh
+
+#!/bin/bash
+rpm -i http://repo.zabbix.com/zabbix/3.4/rhel/7/x86_64/zabbix-release-3.4-2.el7.noarch.rpm
+
+yum install zabbix-agent -y
+
+bb=/etc/zabbix/zabbix_agentd.conf
+aa=`cat /etc/hostname`
+sed -i 's/Server=127.0.0.1/Server=192.168.23.10/' $bb
+sed -i 's/ServerActive=127.0.0.1/ServerActive=192.168.23.10/' $bb
+sed -i 's/Hostname=Zabbix server/Hostname='$aa'/' $bb
+
+systemctl start zabbix-agent.service
+systemctl enable zabbix-agent.service

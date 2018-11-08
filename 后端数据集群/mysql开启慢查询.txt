@@ -1,0 +1,26 @@
+开启慢查询日志，可以让MySQL记录下查询超过指定时间的语句，通过定位分析性能的瓶颈，才能更好的优化数据库系统的性能。
+
+
+方法一：
+
+show variables like 'slow_query%';     查询
+
+show variables like 'long_query_time';   查看超时时间
+
+set global slow_query_log='ON';     设置开启慢查询
+
+set global slow_query_log_file='/usr/local/mysql/data/slow.log';   设置日志路径
+
+set global long_query_time=1;   设置查询超时时间
+
+方法二：配置文件设置
+修改配置文件my.cnf，在[mysqld]下的下方加入
+
+[mysqld]
+slow_query_log = ON
+slow_query_log_file = /usr/local/mysql/data/slow.log
+long_query_time = 1
+
+service mysqld restart
+
+ls /usr/local/mysql/data/slow.log

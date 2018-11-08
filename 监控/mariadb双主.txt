@@ -1,0 +1,84 @@
+server1£º
+[mysqld]
+datadir = /var/lib/mysql
+socket = /var/lib/mysql/mysql.sock
+server_id = 10
+port = 3307
+log_bin = /var/lib/mysql/mybinlog
+relay_log = /var/lib/mysql/relay.log
+
+systemctl restart mariadb.service
+
+grant replication slave on *.* to 'slave1'@'192.168.23.%' identified by '123';
+
+flush privileges;
+
+flush tables with read lock;
+
+show master status;
+
+change master to 
+     master_host='192.168.23.15',	  
+     master_user='slave',	        
+     master_password='123',     
+     master_port=3307,		    
+     master_log_file='mybinlog.000007',	
+     master_log_pos=556;
+
+start slave;
+
+show slave status \G;
+
+unlock tables;
+
+
+zabbix_get -s 192.168.23.15 -k  mysql.replication
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
+
+
+slave£º
+[mysqld]
+datadir = /var/lib/mysql
+socket = /var/lib/mysql/mysql.sock
+server_id = 20
+port = 3307
+log_bin = /var/lib/mysql/mybinlog
+relay_log = /var/lib/mysql/relay.log
+
+systemctl restart mariadb.service
+
+grant replication slave on *.* to 'slave'@'192.168.23.%' identified by '123';
+
+flush privileges;
+
+flush tables with read lock;
+
+show master status;
+
+change master to 
+       master_host='192.168.23.10',	  
+       master_user='slave1',	        
+       master_password='123',     
+       master_port=3307,		    
+       master_log_file='mybinlog.000006',	
+       master_log_pos=5647138;	
+
+start slave;
+
+show slave status \G;
+
+unlock tables;
+
+###############################################################################################################
+vim /etc/zabbix/zabbix_agentd.d/mysql.conf
+
+UserParameter=mysql.replication,mysql -uroot -e 'show slave status\G' |grep -E "Slave_IO_Running|Slave_SQL_Running"|awk '{print $2}'|grep -c Yes
+
+systemctl restart zabbix-agent.service
+
+
+

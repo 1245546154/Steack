@@ -1,0 +1,53 @@
+mongodb安装
+
+tar xvf mongodb-linux-x86_64-rhel62-3.6.5.tgz
+mv mongodb-linux-x86_64-rhel62-3.6.5 /usr/local/mongodb
+
+cd /usr/local/mongodb
+mkdir data
+
+cd /usr/local/mongodb/bin
+ ./mongod --dbpath=/usr/local/mongodb/data --logpath=/usr/local/mongodb/log.txt --fork
+
+use admin 
+db.shutdownServer()
+
+mongodb./mongod --dbpath=/usr/local/mongodb/data/ --logpath=/usr/local/mongodb/log.txt --fork --bind_ip=127.0.0.1,192.168.23.139
+
+
+cd /usr/local/mongodb/bin           #进入数据库bin目录
+./mongo                             #进入数据库
+
+use admin               #切换管理用户
+db.createUser({user:"root",pwd:"root",roles:["root"]})          #设置管理账号密码
+db.shutdownServer()              #关闭服务
+
+db.auth('root','root')     #切换用户
+db.createUser({user:"devops",pwd:"devops123456",roles:[{role:"read",db:"devops"}]})    #添加用户，限制用的库的权限，只读
+
+----------------------------------------------------------------------------------------
+
+Mongodb扩展
+#基于php和nginx 
+
+tar xvf mongo-1.6.14.tgz 
+cd mongo-1.6.14
+phpize                      #管理PHP
+./configure && make && make install
+
+ll /usr/local/php/etc/php.ini          #从解压包目录拷贝出来 development是会报错具体代码的配置   production是只报错误  php.ini.xxxxxxxx
+
+vim /usr/local/php/etc/php.ini 
+
+service php restart
+
+用windows桌面软件管理 
+
+
+----------------------------------------------------------------------------------------
+日志统计展示
+#web1->mycat->master->slave->cache->mongodb
+
+
+在php文件内编辑记录
+

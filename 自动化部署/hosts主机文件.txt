@@ -1,0 +1,47 @@
+#hosts主机文件
+
+
+vim /etc/ansible/hosts 
+echo "test page" >> index.html
+ansible webservers -m copy -a "src=/root/index.html dest=/root/index.html"
+
+vim /etc/ansible/hosts
+[a]
+192.168.23.15 
+192.168.23.16
+
+
+[a:vars]
+ansible_ssh_user='root' ansible_ssh_pass='centos'
+ansible a -m ping
+
+
+[nginx]
+node3.a.com
+[apache]
+node2.a.com
+[webservers:children]
+apache
+nginx
+
+ansible apache:nginx -m ping 
+
+
+[nginxone]
+192.168.23.15 
+[nginxtwo]
+192.168.23.16
+[webservers:children]
+nginxone
+nginxtwo
+[nginxservers:vars]
+ansible_ssh_user='root'
+ansible_ssh_pass='123456'
+
+ansible nginxone:nginxtwo -m ping 
+ansible nginxservers -m ping
+
+
+
+ansible webservers --list-hosts
+ansible nginxservers --list-hosts

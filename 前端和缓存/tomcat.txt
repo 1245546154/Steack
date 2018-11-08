@@ -1,0 +1,117 @@
+tomcat 是java容器 各种项目代码还有程序都可以往里面放
+
+tomcat服务器是一个免费的开放源代码的web应用服务器，属于轻量级应用服务器，在中小型的系统和并发访问用户不是特别多的时候场合下被普遍使用，是开发和调试JSP程序的首选，对于一个初学者来说，可以这样认为，挡在一台机器上配置好阿帕奇服务器之后，可医用它相应HTML页面的访问请求。
+
+tomcat 属于 java web服务器
+用来开发Servlet和Jsp项目的Web服务器
+
+
+tomcat可以解释jsp等java编写的网站。 （相当于是php的作用一般，可以处理html页面的功能。）
+
+
+项目测试使用
+在实际项目部署中，还有一种情况，直接上传一个war的包，直接启用，会自动释放文件，就可以直接使用了。
+
+
+##################################################
+tomcat的三种工作模式
+1.进程内容器：作为web服务器的插件和java容器的实现
+2.进程外容器：容器运行于web服务器之外的地址空间，并作为web服务器的插件和java容器实现的结合
+3.  独立容器：容器是web服务器的一部分
+
+
+tomcat的常用两种运行模式
+1.HTTP连接器  
+2.SSL连接器  
+3.proxy连接器
+
+
+Tomcat请求根据Tomcat的工作模式分为：
+Tomcat作为应用程序服务器：请求来自于前端的web服务器。
+Tomcat作为独立服务器：请求来自于web浏览器；
+
+##################################################
+
+
+tomcat偶尔响应变慢的问题，可以通过调优解决
+
+
+动态部署：登陆tomcat的web界面，管理应用并发布
+静态部署：直接将web项目文件拷贝到webapps目录下
+
+
+ROOT 指tomcat的应用程序的根，如果应用程序部署在ROOT中，则
+可直接通过http://ip:port 访问到
+
+
+
+
+session共享：
+基于IP地址的Hash策略，将同一用户的请求都集中在一台服务器上，这台服务器上保存了该用户的Session信息
+
+Session复制共享：比如可以用Tomcat自带的插件进行Session同步，使得多台应用服务器之间自动同步Session，保持一致。
+如果一台发生故障，负载均衡会遍历寻找可用节点，Session也不会丢失。
+缺点：必须是Tomcat和Tomcat之间
+
+
+一般使用把session写入memcache里面做seesion入库解决session共享的问题
+
+
+
+——————————————————————————————————————————————————————————————————————
+
+
+
+
+
+
+
+configtest.sh   #主配置文件
+shutdown.sh     #关闭脚本
+startup.sh      #启动脚本
+
+
+
+
+
+tomcat提供了方便的启动命令脚本，但是却没有提供服务器中经常管理使用的service脚本。可以自行编写服务管理脚本 脚本详情查看server tomcat.sh
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+/usr/local/tomcat/webapps/ROOT/    #默认访问目录
+
+基于域名访问的HOST配置
+/usr/local/tomcat/conf/server.xml  #修改配置文件
+
+164行  <Host name="aaaa.com"  appBase="webapps/devops">   #路径为/usr/local/tomcat/webapps/devops/ROOT/
+       </Host>
+
+#访问主机解析域名 需要在/etc/hosts内添加IP+域名
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+服务器状态查看
+vim /usr/local/tomcat/webapps/manager/META-INF/context.xml
+
+19行    <!--<Valve className="org.apache.catalina.valves.RemoteAddrValve"  #注释掉黑白名单
+         allow="127\.\d+\.\d+\.\d+|::1|0:0:0:0:0:0:0:1" />-->
+
+
+
+vim /usr/local/tomcat/conf/tomcat-users.xml  #在用户配置文件添加以下文本
+#配置管理界面和管理界面账号密码
+      <role rolename="manager-gui"/>
+      <user username="tomcat" password="tomcat" roles="manager-gui"/> 
+      </tomcat-users>
+
+#配置虚拟主机界面和管理界面账号密码
+      <role rolename="admin-gui"/>
+      <user username="tomcat" password="s3cret" roles="admin-gui"/>
+
+http://192.168.23.137:8080/manager        #访问管理页面
+http://192.168.23.137:8080/host-manager/  #访问虚拟主机页面
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+
+

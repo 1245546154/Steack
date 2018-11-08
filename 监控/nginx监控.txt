@@ -1,0 +1,93 @@
+#使用zabbix对nginx进行监控
+
+yum install epel-release -y 
+yum install nginx -y
+
+systemctl enable nginx;systemctl start nginx
+
+systemctl reload nginx
+
+
+ab -n 10000 -c 1000 http://192.168.23.17/index.html    #压力测试
+
+——————————————————————————————————————————————————
+
+vim /etc/nginx/nginx.conf    #修改nginx配置文件添加模块
+    
+server {
+        location /nginx_status {
+             stub_status on;
+             access_log off;
+             allow 127.0.0.1;
+             allow 192.168.23.10;     #监控端的IP地址
+             allow 192.168.23.250;    #虚拟机环境需要添加VM8IP地址
+             deny all;
+        }
+
+
+http://192.168.23.17/nginx_status
+
+
+server accepts     #总共处理了1个连接
+handled：          #成功创建了1次握手
+requests：         #处理了2个请求
+
+server accepts:  #对应第一个数
+handled：        #对应第二个数
+requests：       #对应第三个数
+
+####################################################################################################
+
+#/bin/bash
+
+host="127.0.0.1"
+port="80"
+
+ping() {
+    /usr/sbin/pidof nginx | wc -l
+}
+
+active(){
+    /usr/bin/curl http://$host:$pory/nginx_status 2> /dev/null | grep "Active" | awk '{print $NF}'
+}
+
+reading(){
+    /usr/bin/curl http://$host:$pory/nginx_status 2> /dev/null | grep "Reading" | awk '{print $2}'
+}
+
+writing(){
+    /usr/bin/curl http://$host:$pory/nginx_status 2> /dev/null | grep "Writing" | awk '{print $4}'
+}
+
+waiting(){
+    /usr/bin/curl http://$host:$pory/nginx_status 2> /dev/null | grep "Waiting" | awk '{print $6}'
+}
+
+accepts() {
+        /usr/bin/curl http://$host:$port/nginx_status 2>/dev/null | awk 'NR==3{print $1}'
+}
+handled() {
+        /usr/bin/curl http://$host:$port/nginx_status 2>/dev/null | awk 'NR==3{print $2}'
+}
+requests() {
+        /usr/bin/curl http://$host:$port/nginx_status 2>/dev/null | awk 'NR==3{print $3}'
+}
+
+$1
+
+——————————————————————————————————————————————————
+
+vim /etc/zabbix/zabbix_agentd.d/nginx_user.conf  #创建被监控端.conf文件
+
+UserParameter=nginx.status[*],/etc/zabbix/zabbix_agentd.d/nginx.sh $1  #加$1进行传参
+
+
+####################################################################################################
+
+zabbix_get -s 192.168.23.17 -k nginx.status[active]    #监控调端测试
+
+创建主机群—应用集—主机—模板—监控项—图形—聚波图形—添加到仪表盘
+
+创建触发器（检测nginx是否在线）
+{Templates_nginx:nginx.status[ping].last(0)}=0
+

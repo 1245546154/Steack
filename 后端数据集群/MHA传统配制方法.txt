@@ -1,0 +1,209 @@
+MHA主要功能用来实现服务器的实施转换，当一台机器挂了之后，vip漂移到新的机器上，不至于用户访问的时候出现问题，可以用GTIDS来进行数据同步最大化的完整性，当主挂了之后，备用自动升级为主，旧的主变成slave IO线程被mha重新指向到新的master服务器。从服务器继续做slave。  
+使用半同步和GTIDS是为了保证数据的完整性，当半同步传输超时之后，自动切换到异步传输。
+手动添加vip和keepalive都可以实现VIP的漂移
+
+创建授权用户的时候出现password啥东西错误的时候。
+set global validate_password_policy=0;
+set global validate_password_length=1;
+set global validate_password_mixed_case_count=2;
+
+
+权限
+SELECT Repl_slave_priv AS Value FROM mysql.user WHERE user = 'slave';
+
+
+MHA 
+部署规划
+
+4台机器
+MHA-Manager 192.168.23.141  server01   10    管理节点
+Master      192.168.23.142  server02   20    写节点
+slave       192.168.23.143  server03   30    读节点
+slave2      192.168.23.144  server04   40    读节点
+
+系统环境 Centos6 或者 7
+
+
+具体环境包在硬盘里
+
+关闭防火墙和 selinux
+
+配置网络 yum epel源
+
+[aliyun]
+name=yuan
+baseurl=http://mirrors.aliyun.com/centos/6/os/x86_64/
+enabled=1
+gpgcheck=0
+
+yum -y install perl-DBD-MySQL \
+perl-Config-Tiny \
+perl-Time-HiRes \
+perl-Mail-Sender \
+perl-Mail-Sendmail \
+perl-MIME-Base32 \
+perl-MIME-Charset \
+perl-MIME-EncWords \
+perl-Params-Classify \
+perl-Params-Validate.x86_64 \
+perl-Log-Dispatch \
+perl-Parallel-ForkManager
+
+yum install perl-DBD-MySQL perl-Config-Tiny perl-Log-Dispatch perl-Parallel-ForkManager perl-Time-HiRes -y
+
+
+安装软件
+[server01]
+安装nodo
+perl Makefile.PL
+make && make install   查看ls /usr/local/bin
+或者
+rpm-ivh ...nodo...rpm  使用rpm -ql mha4mysql-node 和 rpm -ql mha4mysql-manager
+
+[server02]
+安装nodo
+perl Makefile.PL
+make && make install   查看ls /usr/local/bin
+或者
+rpm-ivh ...nodo...rpm  使用rpm -ql mha4mysql-node 和 rpm -ql mha4mysql-manager
+
+[server03]
+安装nodo
+perl Makefile.PL
+make && make install   查看ls /usr/local/bin
+或者
+rpm-ivh ...nodo...rpm  使用rpm -ql mha4mysql-node 和 rpm -ql mha4mysql-manager
+
+[server04]
+管理节点安装先nodo在Manager
+perl Makefile.PL
+make && make install  查看ls /usr/local/bin
+或者
+rpm-ivh ...nodo...rpm     使用rpm -ql mha4mysql-node 和 rpm -ql mha4mysql-manager
+rpm-ivh ...manage...rpm
+
+
+修改[server01][server02][server03] （/etc/my.cnf） ↓
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+server_id = 10
+log_bin=/var/lib/mysql/mybinlog       #[server03]不需要开启binlog日志
+relay_log = /var/lib/mysql/relay.log 
+symbolic-links=0
+
+[mysql_safe]
+pid-file=/var/bib/mysql/mysql.pid
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+
+↑
+
+service mysqld restart (修改完配置文件要重启) pid请检查my.cnf文件
+
+配置三个机器的数据库
+master和slave1 同时配置授权用户和开启远程访问
+
+
+[server01]
+grant replication slave on *.* to 'slave'@'192.168.23.%' identified by '123456';
+grant all privileges on *.* to root@'192.168.23.%' identified  by '123456';  创建监控用户
+update mysql.user set Host='192.168.23.%' where Host='::1';
+
+[server02]
+grant replication slave on *.* to 'slave'@'192.168.23.%' identified by '123456';
+grant all privileges on *.* to root@'192.168.23.%' identified by '123456';   创建监控用户 
+set global read_only=1;  两台slave服务器设置read_only
+set global relay_log_purge=0  relay log的自动清除设置为OFF，采用手动清除relay log的方式
+update mysql.user set Host='192.168.23.%' where Host='::1'
+
+[server03]
+grant all privileges on *.* to root@'192.168.23.%' identified  by '123456'; 创建监控用户
+set global read_only=1;  两台slave服务器设置read_only
+set global relay_log_purge=0  relay log的自动清除设置为OFF，采用手动清除relay log的方式
+update mysql.user set Host='192.168.23.%' where Host='::1'
+
+统一刷新命令   flush privileges;  
+
+[server02]和[server03]
+slave端设定复制信息
+
+change master to 
+master_host='192.168.23.132',	    
+master_user='slave',	            
+master_password='123456',      
+master_port=3306,		      
+master_log_file='mybinlog.0000001 ',	
+master_log_pos=120;
+
+reset slave;
+start slave;
+show slave status \G;   #slave查看IO连接状态
+show master status;     #master查看binlog日志文件
+
+配置四台机器的ssh的免密登陆（所有机器必须全都能互相通信）
+ssh-keygen -t rsa
+复制括号里的东西
+两下回车（跳过密码）
+ssh-copy-id -i /root/.ssh/id_rsa.pub root@192.168.23.*
+yes
+输入密码 123456
+
+[server04]管理节点手动创建相关配置文件
+
+mkdir -p /etc/masterha
+cp mha4mysql-manager-0.56/samples/conf/app1.cnf /etc/masterha/
+
+
+vim /etc/masterha/app1.cnf ↓ 
+[server default]
+manager_workdir=/etc/masterha/app1
+manager_log=/etc/masterha/app1/manager.log
+#日志文件及其路径，需要手动创建
+user=root
+password=123456
+#数据库远程登录的
+
+ssh_user=root
+#用于测试ssh登录的
+
+repl_user=slave
+repl_password=123456
+#repl做主从的用户  这个也是每一台都要授权的
+
+[server1]
+hostname=192.168.23.141
+port=3306
+master_binlog_dir=/var/lib/mysql
+candidate_master=1
+check_repl_delay=0
+
+[server2]
+hostname=192.168.23.142
+port=3306
+master_binlog_dir=/var/lib/mysql
+candidate_master=1
+check_repl_delay=0
+
+[server3]
+hostname=192.168.23.143
+port=3306
+master_binlog_dir=/var/lib/mysql
+ignore_fail=1
+no_master=1
+
+↑
+
+masterha_check_ssh --conf=/etc/masterha/app1.cnf  检查SSH配置
+masterha_check_repl --conf=/etc/masterha/app1.cnf  检查整个复制环境状况
+
+开启MHA Manager监控
+mkdir -p  /var/log/masterha/app1/
+
+nohup masterha_manager --conf=/etc/masterha/app1.cnf --remove_dead_master_conf --ignore_last_failover < /dev/null > /etc/masterha/app1/manager.log 2>&1 & 
+#会检查个几秒钟 等一会就好了（指向的manager日志）
+
+#检查Manager开启状态
+masterha_check_status --conf=/etc/masterha/app1.cnf 
+
+/etc/masterha/app1.cnf里面记录mha的状态

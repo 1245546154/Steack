@@ -1,0 +1,19 @@
+scp /ect/yum.repos.d/zabbix.repo 192.168.23.15:/etc/yum.repos.d/zabbix.repo
+
+yum -y install zabbix-agent 
+
+GPG秘钥，用来对比秘钥是不是系统生成的秘钥。（如果不想要秘钥验证，只需要修改repo的文件即可）
+
+
+被监控端配置：
+vim /etc/zabbix/zabbix_agentd.conf
+       157行  HostnameItem=system.hostname   
+       179行  HostMetadataItem=system.uname
+
+
+
+web管理界面：
+配置——动作和操作——事件源（自动注册）——创建动作——名称（XXXXX）——主机元数据——似——linux——添加——操作——操作类型：主机/主机群组/关联模板——用户群组添加——添加
+
+
+zabbix会自动注册对应的机器。（实现被监控主机的自动注册）

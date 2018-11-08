@@ -1,0 +1,4 @@
+ftp 默认为被动21，主动20
+
+pasv_min_port=3000       #随机端口范围
+pasv_max_port=3005  

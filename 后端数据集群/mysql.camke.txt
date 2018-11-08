@@ -1,0 +1,14 @@
+# cmake . -DCMAKE_INSTALL_PREFIX=/usr/local/mysql \         （反斜杠意思是换行，指定安装目录）
+          -DMYSQL_DATADIR=/data/mydata \                   （指定数据存储目录）
+          -DSYSCONFDIR=/etc \                              （配置文件目录）
+          -DWITH_INNOBASE_STORAGE_ENGINE=1 \       （指定编译存储引擎）
+          -DWITH_ARCHIVE_STORAGE_ENGINE=1 \        （指定编译存储引擎）
+          -DWITH_BLACKHOLE_STORAGE_ENGINE=1 \      （指定编译存储引擎）
+          -DWITH_READLINE=1 \         （指定编译库）
+          -DWITH_SSL=system \        （指定编译库）
+          -DWITH_ZLIB=system \        （指定编译库）
+          -DWITH_LIBWRAP=0 \        （指定编译库）
+          -DMYSQL_UNIX_ADDR=/tmp/mysql.sock \     （指定套接字路径）
+          -DDEFAULT_CHARSET=utf8 \             （指定默认字符集）
+          -DDEFAULT_COLLATION=utf8_general_ci      （指定默认编码）
+          -DWITH_BOOST=/usr/local/boost       （指定boost库位置）

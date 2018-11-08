@@ -1,0 +1,290 @@
+创建脚本。
+
+ansible ip -m copy -a "src=/tmp/test.sh dest=/tmp/test.sh mode=0755"  批量拷贝
+ansible ip  -m shell -a "/tmp/test.sh"   批量执行
+ansible testhost -m shell -a "cat /etc/passwd|wc -l "    批量查看
+
+
+ansible：自动编排工具
+
+操作机  被操作机  
+ 
+ansible的工作流程：显示ansible访问所有主机资源，然后调用模块和自定义模块，通过插件连接（ssh协议） 
+
+host inventory      #（记录主机清单）
+playbooks           #（剧本概念）
+Host inventory      #（记录所有ansible管理的主机信息）
+Core Modules        #（核心模块）
+Custom Modules      #（自定义模块）
+Connection Plugins  #（连接插件）
+
+
+#nsible 特性
+no agent  不需要安装客户端（支持ssh）
+no server 不需要启动服务 （ansible）
+YAML格式，编排任务，支持丰富的数据结构（剧本playbook）
+使用python编写，维护简单。
+基于ssh工作（基于秘钥认证）
+
+------------------------------------------------------------------------------------------------------------------
+ansible-doc file                    #查看file操作帮助
+
+
+yum list | grep ansible
+yum install epel-release  -y        
+yum install ansible  -y             #操作机（安装） 注：被操作机上不需要安装
+
+
+cd /etc/ansible/         
+rpm -qc ansible                     #一个文件夹，两个文件：ansible.cfg   hosts   roles 
+vim hosts                           #主机清单
+vim ansible.cfg                     #主配置文件
+EX1 和  EX2  里面多实例             #把主机IP直接写到最下面来
+
+
+vim /etc/ssh/ssh/ssh_config         #不是sshd_config
+#去掉注释  StrictHostKeyChecking no 
+systemctl restart sshd.service
+service sshd restart 
+
+
+vim /etc/ansible/hosts              #依赖于ssh  （免密登录）
+ssh-keygen 
+/root/.ssh/id_rsa
+ssh-copy-id 192.168.23.15
+ssh-copy-id 192.168.23.16
+ansible 192.168.23.120  -m ping     #(-m使用ping模块) ping模块基于ssh通了就通了，不通就不通。
+
+
+vim /etc/ansible/hosts              #定义一个域
+[webservers]                        #域名
+node2                               #域内的主机或者IP
+node3
+
+ansible webservers -m ping          #直接调用ping模块对这个[webservers]使用
+ansible all -m ping                 #直接ping通全部记录的主机名
+
+
+
+vim /etc/ansible/hosts              #修改主机文件，添加多个域
+[webservers]
+node2
+[sqlservers]
+node3
+
+ansible ~node2:\!node3 -m ping      #直接指定一个主机
+
+------------------------------------------------------------------------------------------------------------------
+
+ansible-doc -l          #a10 f5 调度器
+ansible-doc ping        #查找指定模块
+
+ansible 192.168.23.15 -u root -k -m ping     #用root用户执行
+
+注：tomcat    #绝对不能用超级管理员用户启动
+
+
+/usr/lib/python2.7/site-packages/ansible/modules/system/user.py    #存放脚本文件
+
+yum install zsh       #yum安装zshell 
+
+
+
+groups=        #指明用户的附加组
+shell=         #指明默认的shell
+home=          #指明用户的家目录
+password=      #指明用户的密码，最好使用加密好的字符串
+comment=       #指明用户的注释信息       
+state=absent   #删除用户
+ove_home=yes|no ? #当home设定了家目录，如果要创建的家目录已存在，是否将已存在的家目录进行移动
+remove=yes|no ? 当state=absent时，也就是删除用户时，是否要删除用户的家目录
+
+
+
+#调用user模块
+ansible webservers -m user -a "name=lijiu password=abc123.com shell=/bin/bash"
+
+yum install python-pip -y       #安装pip工具
+pip install --upgrade pip       #升级pip到最新版本
+pip install passlib             #使用pip安装passlib
+
+
+#密码生成器（将生成的密码，发送给指定的域下的所有主机   注：对应用户名和密码）
+python -c "from passlib.hash import sha512_crypt; import getpass; print(sha512_crypt.using(rounds=5000).hash(getpass.getpass()))"     
+
+#将密码生成器生成的密码，复制到下面即可
+ansible webservers -m user -a "name=lijiu2 password=$6$/B.S6TJdeIYVhjK0$q8WYPp9XN.NjZ9ZmI1Rzt7ImOv2ekZSUpqzBjk7rt.9jfj73X652xsym2l.uNwsmy8Tcx/aVdTRjFELFVeZmB/"
+
+#删除指定的用户
+ansible webservers -m user -a "name=node1 state=absent"
+ansible webservers -m user -a "name=node1 move_home=yes state=absent"    #登录之后需要杀死用户的IP 才能退出
+
+
+------------------------------------------------------------------------------------------------------------------
+#使用group模块   注：用来添加或删除远端主机的用户组
+ll /home  
+
+vim /etc/shadow 
+
+ansible webservers -m group -a "name=group1 state=absent gid=123456 system=yes"    #删除
+
+ansible webservers -m group -a "name=group1 state=present gid=123456 system=yes"   #创建
+
+tail /etc/group    #查看组信息
+
+
+
+------------------------------------------------------------------------------------------------------------------
+#使用file模块
+
+path= 使用绝对路径
+src= 指明本地路径
+ 
+ansible webservers -m file -a "src=/root/123.txt path=/root/321.txt state=link "                        #创建软连接
+
+ansible webservers -m file -a "src=/root/123.txt path=/root/321.txt owner=root mode=1755  state=link"   #创建软连接并更改权限
+
+state=directory      #创建目录用
+
+ansible webservers -m file -a "path=/root123.txt state=absent"   删除一条链接
+
+------------------------------------------------------------------------------------------------------------------
+#copy模块   注：目录不能为空 否则copy不过去
+
+dest= 使用绝对路径
+src= 指明本地路径
+
+ansible webservers -m copy -a "src=/etc/hosts dest=/tmp/hosts"     #copy本地目录到目标目录位置
+
+ansible 192.168.23.15 -m copy -a "src=/etc/hosts dest=/tmp/hosts"  #指定IP地址进行操作
+
+ansible webservers -m copy -a "src=/etc/hosts dest=/tmp/hosts" -u root -k  copy    #指定用户进行操作
+
+------------------------------------------------------------------------------------------------------------------
+#shell
+调用shel模块
+ansible  webservers -m shell -a "top -b -n 1"       #调用top命令，使top只输出一次
+ansible  webservers -m shell -a "vmstat"            #调用vmstat命令，报告虚拟内存统计
+                   
+ansible webservers -m shell -a "ss -anput |grep '80'"
+
+------------------------------------------------------------------------------------------------------------------
+
+#yum
+调用yum模块
+
+state=present|lastestabsent  指明对程序包执行的操作，present表示安装程序包，latest表示安装最新版本的程序包，absent表示卸载。
+
+
+ansible  webservers -m yum -a "name=httpd state=present"    #安装apache服务
+ansible  webservers -m yum -a "name=httpd state=absent"     #删除apache服务
+ansible  webservers -m yum -a "name=httpd state=latest"     #更新apache服务
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ansible webservers  -m yum  -a "name=nmap-6.40 state=present"    #安装nmap
+ansible webservers  -m yum  -a "name=nmap-6.40 state=absentt"    #卸载nmap
+ansible webservers  -m yum  -a "name=nmap-6.40 state=latest"     #更新nmap
+yum provides *bin/nmap     #查看nmap文件名
+nmap -v -A 192.168.23.15   #查看所有已开启的端口
+
+------------------------------------------------------------------------------------------------------------------
+
+#c调用command模块
+ansible-doc command
+
+cd /usr/lib/python2.7/site-pachages/ansible/modules/commands/
+
+cp /etc/ansible/hosts ~/hosts-list
+
+ansible webservers -i ~/hosts-list -m command  -a "uptime"
+ansible webservers -i ~/hosts-list -m command  -a "top -b -n 1 "
+
+------------------------------------------------------------------------------------------------------------------
+#调用service模块
+ansible-doc service 
+
+ansible webservers -i ~/hosts-list -m service  -a "name=httpd state=started"    #启动apache服务
+
+ansible webservers -i ~/hosts-list -m service  -a "name=httpd state=stoped"     #关闭apache服务
+
+ansible webservers -i ~/hosts-list -m service  -a "name=httpd state=reloaded"   #重启apache服务
+
+ansible webservers -i ~/hosts-list -m service  -a "name=httpd enabled=yes"      #开机启动apache服务
+
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+ansible webservers -i ~/hosts-list -m service  -a "name=network state=started"    
+
+ansible webservers -i ~/hosts-list -m service  -a "name=network state=stoped"     
+
+ansible webservers -i ~/hosts-list -m service  -a "name=network state=rrestarted"    
+
+ansible webservers -i ~/hosts-list -m service  -a "name=network enabled=yes"     
+
+------------------------------------------------------------------------------------------------------------------
+
+#调用uri模块
+ansible-doc uri 
+
+echo "test page" >> /var/www/html/test.html
+
+ansible webservers -i hosts-list -m uri -a "url=http://localhost/test.html"
+
+echo "index page" >> /var/1111
+
+------------------------------------------------------------------------------------------------------------------
+
+#调用cron模块
+ansible-doc cron
+
+#更新时间服务器
+ansible webservers -i ~/hosts-list -m shell -a "rdate -s 0.centos.pool.ntp.org"
+
+#指定路径更新时间服务器
+ansible webservers -i ~/hosts-list -m cron -a 'name=chdate job=rdate"/usr/bin/rdate -s 0.centos.pool.ntp.org &> /dev/null"state=present minute=*/2'
+
+
+#计划任务23点启动
+ansible webservers -i hosts-list -m cron -a "name=cat job='/usr/bin/cat /root/index.html' state=present minute=30 hour=23"                
+
+ansible webservers -i hosts-list -m cron -a "name=cat job='/usr/bin/cat /root/index.html' state=absent minute=30 hour=23"                
+
+------------------------------------------------------------------------------------------------------------------
+
+#调用hostname模块
+ansible-doc hostname
+
+ansible apache -i hosts-list -m hostname -a "name=123.com"
+
+ansible apache -i hosts-list -m shell -a "hostname"
+
+------------------------------------------------------------------------------------------------------------------
+
+#调用script模块
+ansible-doc script 
+
+bash -x 脚本文件                
+
+ansible web -mscripey -a "脚本文件" 
+
+------------------------------------------------------------------------------------------------------------------
+
+#调用setup模块
+ansible-doc setup
+
+dest= ?从远程主机上拉取的文件存放在本地的位置，一般只能是目录
+src= ? 指明远程主机上要拉取的文件，只能是文件，不能是目录
+
+ansible devens -i hosts.list -m glshr -a "file=weier-nfs"
+ansible test -m setup
+
+------------------------------------------------------------------------------------------------------------------
+#调用fetch模块     （从远程主机拉取文件到本地）
+ansible-doc fetch
+
+ansible webservers -s hosts-list -m fetcth -a "src=/etc/hosts dest=/etc/HOSTS" 
+
+
+
+

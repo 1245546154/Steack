@@ -1,0 +1,63 @@
+sersync端   #（监控端 修改数据同步到rsync端）
+
+ssh-keygen                            
+ssh-copy-id -i 192.168.23.135
+
+
+tar -xf sersync2.5.4_64bit_binary_stable_final.tar.gz
+mv GNU-Linux-x86/ /usr/local/sersync
+cd /usr/local/sersync/
+
+
+vim confxml.xml      #修改主配置文件
+
+23行-27行
+    <sersync>
+         <localpath watch="/usr/local/nginx/html/tp5shop/">   #共享目录
+             <remote ip="192.168.23.135" name="tp5shop"/>    #目标主机和对应的标签名
+             <!--<remote ip="192.168.8.39" name="tongbu"/>-->    #多个目标IP
+             <!--<remote ip="192.168.8.40" name="tongbu"/>-->
+         </localpath>
+         <rsync>
+
+cd /usr/local/sersync/
+./sersync2 -n 10 -d -o /usr/local/sersync/confxml.xml    #启动服务挂载后台
+
+ps -aux | grep rsync 
+
+
+------------------------------------------------------------------------------------
+
+rsync端
+
+ssh-keygen
+ssh-copy-id -i 192.168.23.135
+yum install rsync -y 
+
+vim /etc/rsyncd.conf       #主配置文件 （6里面手动创建，7里面直接修改）
+
+# configuration example:
+ uid = root                       #以哪个用户的身份来传输  
+ gid = root                       #以哪个组的身份来传输
+ use chroot = no                  #设置允许登录的ip，这里没有限制IP
+ max connections = 50             #设置最大连接数 （建议10以上）
+ pid file = /var/run/rsyncd.pid   #设置启动rsync服务器的文件
+ lock file = /var/run/rsync.lock  #设置启动rsync服务器的文件
+ hosts allow = *                  
+ transfer logging = yes           
+ timeout = 900                    
+ ignore nonreadable = yes         
+ dont compress   = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2
+
+
+[tp5shop]                                #同步模块
+path = /usr/local/nginx/html/tp5shop/    #需要的文件及其文件夹路径
+comment = tp5shop                        #备注（标签名）
+read only = false                        #只读关闭
+ secrets file=/etc/rsyncd.passwd         #指定密码文件，如果设定验证用户，这一项必须设置，设定密码权限为400.
+auth users=test #指定验证用户名，可以不设置，不设置默认不用密码，设置的话安全性更高点
+
+
+/usr/bin/rsync --daemon                  #启动服务
+
+ps -aux | grep rsync 

@@ -1,0 +1,155 @@
+nginx：可以用来当负载均衡器使用
+
+
+nginx的调度算法：
+1.轮询：nginx默认的调度算法，两台或者多台nginx服务器进行1：1的请求处理（你一下我一下的轮）
+2.权重：通过制定哪台web服务器去处理几次请求（比如10条数据，一台处理3次，另一台处理7次）
+3.IPhash：来自同一个IP的请求，处理在一台web服务器上
+4.URLhash：来自同一个URL的请求，处理在一台web服务器上
+
+轮询加权：在（你一下我一下的轮）的基础之上你处理几次，我处理几次，而不再只是默认的1：1
+
+
+
+
+——————————————————————————————————————————————————————————————————————————
+反向代理服务器：
+客户机在发送请求时，不会直接发送给目的主机，而是先发送给代理服务器，代理服务接受客户机请求之后，再向主机发出，并接收目的主机返回的数据，存放在代理服务器的硬盘中，再发送给客户机。 
+
+#############################
+
+正向代理：
+架设在客户机与目标主机之间，只用于代理内部网络对Internet的连接请求，客户机必须指定代理服务器,并将本来要直接发送到Web服务器上的http请求发送到代理服务器中。 
+
+#############################
+
+反向代理：
+以代理服务器来接受internet上的连接请求，然后将请求转发给内部网络上的服务器，并将从服务器上得到的结果返回给internet上请求连接的客户端，此时代理服务器对外就表现为一个反向代理服务器。
+
+
+提高访问速度 防火墙作用 
+
+
+
+
+——————————————————————————————————————————————————————————————————————————
+GZIP功能
+将响应报?发送?客户端之前可以启?压缩功能，这能够有效地节约带宽，并提?响应?客户端的速度,压缩会消耗nginx的cpu性能
+
+
+网站的css,js ,xml,html 在传输的时候可以使用gzip压缩，提高访问速度，
+
+
+——————————————————————————————————————————————————————————————————————————
+session共享：
+基于IP地址的Hash策略，将同一用户的请求都集中在一台服务器上，这台服务器上保存了该用户的Session信息
+
+Session复制共享：比如可以用Tomcat自带的插件进行Session同步，使得多台应用服务器之间自动同步Session，保持一致。
+如果一台发生故障，负载均衡会遍历寻找可用节点，Session也不会丢失。
+缺点：必须是Tomcat和Tomcat之间
+
+
+一般使用把session写入memcache里面做seesion入库解决session共享的问题
+
+
+
+
+
+
+——————————————————————————————————————————————————————————————————————————
+
+环境
+yum -y install gcc pcre-devel openssl-devel zlib-devel
+yum -y install httpd-tools  安装apache工具
+yum install net-tools   安装netstat命令
+
+
+vim /usr/local/nginx/conf/nginx.conf
+deny （IP）;  禁止ip
+deny （all）；  禁止全部
+allow （IP）；  允许IP
+allow  （all）； 允许全部
+
+源码安装
+shell > tar xvf nginx-1.12.2.tar.gz
+shell > cd nginx-1.12.2
+shell > ./configure --prefix=/usr/local/nginx-1.12.2 --with-http_ssl_module
+shell > make && make install
+
+shell >ln -s /usr/local/nginx-1.12.2  /usr/local/nginx
+
+启动 /usr/local/nginx/sbin/nginx
+关闭 /usr/local/nginx/sbin/nginx -s stop
+重载 /usr/local/nginx/sbin/nginx -s reload
+
+调用脚本在/etc/init.d目录下  放个nginx的脚本 chmod +x nginx
+service nginx start|stop|restart
+
+cd /usr/local/nginx/html/(创建目录)/XXXXX
+
+vim /usr/local/nginx/conf/nginx.conf
+
+server { 
+listen  8080；
+server_name (IP或者域名)
+location / {
+root  html/(默认目录);
+index  index.html(默认网页开启目录功能后可以关闭);
+}
+error_page   500  502 503 504  /50x.html;
+location = /50x.html {
+root  html:
+}
+
+localtion ~ \.(png|jpg|jepg)$ {
+expires 15d;  15天
+}
+}
+service nginx restart
+
+Gzip压缩
+gzip on：                  开启GZIP压缩
+gzip_http_version  1.0      http协议版本
+gzip_disable 'MSIE [1-6]';   禁止IE 6以下使用
+gzip_types image/jpeg image/jpg;  使用hpeg支持JPG格式的图片
+
+service nginx restart
+
+加密文本: 由htpasswd命令实现
+htpasswd  -c 生成到的路径  用户名
+
+vim /usr/local/nginx/conf/nginx.conf
+auth_basic “提示信息”
+auth_basic_user_file  /etc/nginx/htpasswd;
+
+升级和安装
+shell > tar xvf nginx-1.14.0.tar.gz 
+shell > cd nginx-1.14.0
+shell > ./configure --prefix=/usr/local/nginx --with-http_ssl_module
+shell > make && make install
+
+cd /usr/local/nginx/sbin 
+nginx 和 nginx.old
+./nginx.old -v
+
+新版本和旧版本同时运行  注意新版本和旧版本的端口号不能冲突（可在conf文件里面进行修改）
+
+kill -WINCH 进程号
+优雅的关闭的子进程
+
+ps aux | grep nginx
+
+
+ngx第三方模块安装
+shell > tar zxvf ngx-fancyindex-v0.4.2.tar.gz
+shell > cd /Packup/nginx-1.14.0                   进入nginx的解压路径
+shell > ./configure --prefix=/usr/local/nginx --with-http_ssl_module --add-module=/Packup/ngx-fancyindex-0.4.2/              找到软件模块解压路径
+shell > make && make install
+
+修改conf文件里面添加
+fancyindex on;                开启显示目录文件
+fancyindex_exact_size off;    以可读性更好的方式显示大小
+
+
+
+

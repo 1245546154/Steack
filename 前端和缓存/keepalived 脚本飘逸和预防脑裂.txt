@@ -1,0 +1,186 @@
+使用脚本来检测我和另一台机器之间的网络线路状态，如果线路出现问题，则直接通过脚本检测来关闭keepalived进程，（原理和监控nginx服务来进行飘逸是一样的道理）
+
+
+#!/bin/bash
+
+stop=’systemctl stop keepalived >/dev/null’
+start=’systemctl start keepalived >/dev/null’
+keep=’ps -C keepalived --no-header | wc -l’
+nginx=’netstat -lnpt | grep 80 > /dev/null’
+
+while true 
+do 
+if [ $nginx -eq 1 ] ;then
+$stop
+    else 
+	ping -c 1 192.168.23.200 > /dev/null
+	if [ $? -eq 1 ] ; then
+	$stop
+	     else 
+    		 $start
+   fi
+fi
+sleep 2
+done 
+
+
+
+
+master挂掉之后 vip自动漂移到backup上， 当master启动之后 vip自动漂移会master 
+主的优先级大于备的优先级
+设置好脚本之后  只需要设定虚拟IP即可不需要设置sel_server
+如果想让master不参与抢占的话 需要加非抢占的命令  在优先级高的机器上添加（多半都是master）
+
+yum install keepalived 
+vim keepalived start|stop|restart
+
+
+! Configuration File for keepalived
+
+global_defs {              #全局定义主要设置 keepalived 的通知机制和标识
+   notification_email {
+     acassen@firewall.loc      #邮件地址可以多个，每行一个
+     failover@firewall.loc     #邮件地址可以多个，每行一个
+     sysadmin@firewall.loc     #邮件地址可以多个，每行一个
+   }
+   notification_email_from Alexandre.Cassen@firewall.loc     #邮件的发件人 
+   smtp_server 192.168.200.1     #邮件服务的地址（本地）smtp协议
+   smtp_connect_timeout 30       #连接smtp超时时间
+   router_id LVS_DEVEL           #标识号，路由名字
+}
+
+vrrp_script chk_nginx {        #定义执行的脚本  chk_nginx
+    script "/root/keep.sh"     #脚本路径
+    interval 2;                #隔多长时间检测脚本
+}
+
+
+
+vrrp_instance VI_1 {          #VIP组1
+    state MASTER              #定义角色
+    interface eth0            #绑定到对应网卡
+    virtual_router_id 51      #虚拟ID号
+       priority 90            #优先级高为master，master 至少要高于 backup
+
+    unicast_src_ip  10.11.4.187       #source ip 本地IP 单播
+    unicast_peer {
+            10.11.4.186               #dest ip  对方IP  单播
+    }            
+
+
+  
+    advert_int 1              #检查间隔，默认为1秒
+    authentication {          #nopreempt设置不抢占，重新启动不夺回master角色（高的优先级加）
+        auth_type PASS        #认证类型
+        auth_pass 1111        #主备之间做身份验证  主备之间一定一致
+    }
+    virtual_ipaddress {       #虚拟ip地址
+        192.168.200.100
+
+    }
+track_script {    #调用脚本
+chk_nginx
+}
+
+}
+
+virtual_server 192.168.200.100 80 {   #虚拟服务器所监听的端口（80nginx的端口）
+    delay_loop 6            #服务轮询的时间间隔
+    lb_algo rr              #负载均衡的算法
+    lb_kind NAT             #负载均衡调度规则
+    nat_mask 255.255.255.0   
+persistence_timeout 50      #会话保持时间（秒为单位），即以用户在50秒内被分配到同一个后端realserver
+    protocol TCP     #健康检查的协议 TCP还是UDP
+
+
+
+
+    real_server 192.168.201.100 443 {
+        weight 1
+        SSL_GET {
+            url {
+              path /
+              digest ff20ad2481f97b1754ef3e12ecd3a9cc
+            }
+            url {
+              path /mrtg/
+              digest 9b3a0c85a887a256d6939da88aabd8cd
+            }
+            connect_timeout 3
+            nb_get_retry 3
+            delay_before_retry 3
+        }
+    }
+}
+
+
+
+2.。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。。
+
+
+! Configuration File for keepalived
+
+global_defs {                      #全局定义主要设置 keepalived 的通知机制和标识
+   notification_email {
+     root@localhost                #邮件地址可以多个，每行一个
+     failover@firewall.loc
+     sysadmin@firewall.loc
+   }
+   notification_email_from Alexandre.Cassen@@localhost       #邮件的发件人
+   smtp_server 127.0.0.1           #邮件服务的地址（本地）smtp协议
+   smtp_connect_timeout 30         #连接smtp超时时间
+   router_id LVS_DEVEL             #标识号，路由名字
+   vrrp_skip_check_adv_addr
+   vrrp_strict
+   vrrp_garp_interval 0
+   vrrp_gna_interval 0
+}
+
+vrrp_instance VI_1 {             #定义vrrp实例组
+    state MASTER                 #当前主机所扮演的模式master|backup
+    interface ens37              # 实例绑定的网卡
+    virtual_router_id 100        # 虚拟路由标识 00-00-5e-00-01-{VRID}
+    priority 110                 # 优先级高为master，master 至少要高于 backup
+    advert_int 1                 #检查间隔，默认为1秒
+                
+（（nopreempt））                #设置不抢占，重新启动不夺回master角色（高的优先级加）
+              		
+    authentication {             #认证设置
+        auth_type PASS           #认证类型|验证:主备之间做身份验证  主备之间一定一致
+        auth_pass 1111           #认证类型|验证:主备之间做身份验证  主备之间一定一致
+    }
+    virtual_ipaddress {          #虚拟ip地址
+        192.168.100.100          #虚拟ip地址A 
+        #192.168.200.16
+        #192.168.200.17
+        #192.168.200.18
+    }
+}
+
+virtual_server 192.168.100.100 3307 {    #虚拟服务器所监听的端口（mysql端口）
+    delay_loop 1                         #服务轮询的时间间隔
+    lb_algo wrr                          #负载均衡的算法
+    lb_kind DR                           #负载均衡调度规则
+    persistence_timeout 5                #会话保持时间（秒为单位），即以用户在50秒内被分配到同一个后端realserver
+    protocol TCP                         #健康检查的协议 TCP还是UDP
+
+    real_server 10.1.1.147 3307 {        #实际mysql的真实ip
+        weight 1                         #权重：0表示失效(不转发请求直到恢复正常)，默认是1
+        notify_down /etc/keepalived/mysql.sh   # 检查服务器失败(down)后，要执行的脚本
+        TCP_CHECK {                      #面是常用的健康检查方式
+            connect_timeout 1            #连接超时时间，单位秒
+            nb_get_retry 3               #重连次数
+            delay_before_retry 3         #延迟时间3秒
+            connect_port 3307            #连接端口3306
+            bingto 192.168.1.100         #健康检查的IP地址
+
+        }
+
+    }
+}
+
+
+扩展：
+负载均衡器常见的调度算法：
+1.轮询调度（Round-Robin,RR）
+最简单的调度算法，LB按照顺序将请求依次转发给后端的RS，并没有考量后端RS的状态（处理速度以及响应时间）。大部分情况下，RS的性能状态都是各不一致的，这种算法显然无法满足合理利用资源的要求。

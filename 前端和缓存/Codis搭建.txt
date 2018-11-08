@@ -1,0 +1,185 @@
+软件获取路径：
+codis版本：3.1 版本：
+git clone https://github.com/CodisLabs/codis.git -b release3.1
+
+Go使用版本：go1.4.1
+wget https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz
+
+Go使用版本：go1.5.2
+https://golang.org/doc/install?download=go1.5.2.linux-amd64.tar.gz
+
+jdk版本jdk-8u111
+http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jdk-8u111-linux-x64.tar.gz
+
+zookeeper版本3.4.6
+http://mirrors.cnnic.cn/apache/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz
+
+
+
+——————————————————————————————————————————————————————————————————————————————
+vim /etc/profile     #修改系统环境变量：（一台配置完毕，直接scp到其他机器即可）
+
+#####################################
+export GOROOT=/usr/local/go
+export GOPATH=/usr/local/codis
+JAVA_HOME=/usr/java/jdk
+CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar
+export ZOOKEEPER_HOME=/usr/local/zookeeper-3.4.11
+export PATH=$PATH:$GOROOT/bin:$ZOOKEEPER_HOME/bin:$JAVA_HOME/bin
+
+
+部署基础环境：
+yum install -y gcc make gcc-c++ automake lrzsz openssl-devel zlib-* bzip2-* readline* zlib-* bzip2-* git nmap unzip wget lsof xz net-tools mercurial vim net-tools
+
+
+——————————————————————————————————————————————————————————————————————————————
+配置zookeeper集群：
+
+tar -xvzf zookeeper-3.4.11.tar.gz 
+tar -xvzf go1.7.6.linux-amd64.tar.gz
+tar -xvzf jdk-8u91-linux-x64.tar.gz
+
+mv go /usc/local/go
+mv jdk /usc/local/jdk
+mv zookeeper /usc/local/zookeeper
+
+cd /usr/local/zookeeper/conf/
+mkdir /usr/local/zookeeper/data
+cp zoo_sample.cfg zoo.cfg
+
+vim zoo.cfg
+dataDir=/usr/local/zookeeper/data
+
+server.1=192.168.23.1:2888:3888                 #配置文件最后添加
+server.2=192.168.23.2:2888:3888               
+server.3=192.168.23.3:2888:3888
+
+echo "1" >> /usr/local/zookeeper/data/myid      #添加选举参数
+
+zkServer.sh start（需要环境变量） 或者 /usr/local/zookeeper/bin/zkServer.sh start
+
+netstat -lntp | grep java  
+
+
+——————————————————————————————————————————————————————————————————————————————
+搭建codis集群：
+
+mkdir -p /usr/local/gopkg/src/github.com/CodisLabs/               #创建codis文件目录
+cd /usr/local/gopkg/src/github.com/CodisLabs/                     #进入codis文件目录
+git clone https://github.com/CodisLabs/codis.git -b release3.1    #通过环境变量，直接下载到指定目录           
+make  								  #编译即可
+
+
+
+创建所需目录：
+
+mkdir -p /usr/local/codis
+mkdir -p /data/logs/codis
+mkdir -p /data/codis/conf
+mkdir -p /data/components/redis
+
+
+拷贝codis目录所需文件到/usr/local/codis目录下：
+cp -r /usr/local/codis/src/github.com/CodisLabs/codis/bin/  /usr/local/codis/
+cd /usr/local/codis/src/github.com/CodisLabs/codis/extern/redis-2.8.21/src
+cp redis-cli /usr/local/codis/bin
+
+
+
+拷贝codis—redis配置文件:
+cp /usr/local/codis/src/github.com/CodisLabs/codis/extern/redis-2.8.21/redis.conf /usr/local/codis/conf/redis6379.conf
+
+cp /usr/local/codis/src/github.com/CodisLabs/codis/extern/redis-2.8.21/redis.conf /usr/local/codis/conf/redis6380.conf
+
+
+
+
+所有redis机器的配置都必须一致（除了bind）
+vim /usr/local/codis/conf/redis6379.conf          #配置redis文件（79跟80配置一样）
+vim /usr/local/codis/conf/redis6380.conf          
+
+#############################
+daemonize yes
+pidfile "/usr/local/codis/run/redis6379.pid"      
+port 6379                                         #79的文件就写79，80的文件就写80
+bind 192.168.23.100                               #哪台机器，就填哪台机器的IP
+logfile "/data/logs/codis/redis6379.log"          #79的文件就写79，80的文件就写80
+
+#save 900 1    		                          #所有redis都要关闭AOF日志（注销掉即可）
+#save 300 10
+#save 60 10000
+
+
+——————————————————————————————————————————————————————————————————————————————
+cd /usr/local/codis/  (必须注意路径)
+
+生成dashboard配置文件（注意路径）:
+/usr/local/codis/bin/codis-dashboard  --default-config | tee  dashboard.toml
+
+
+vim dashboard.toml
+###############################
+coordinator_addr = "192.168.23.100:2181,192.168.23.110:2181,192.168.23.120:2181"    #zookeeper集群的IP和端口
+product_name = "codis-demo"           #codis集群名称
+product_auth = ""                     #此处是redis集群的密码，如果redis没有密码，千万不要填写
+
+
+——————————————————————————————————————————————————————————————————————————————
+生成proxy配置文件（注意路径）
+/usr/local/codis/bin/codis-proxy --default-config | tee proxy.toml           #(此配置文件没有任何修改)
+
+
+生成codis.json配置文件（注意路径）
+/usr/local/codis/bin/codis-admin --dashboard-list --zookeeper=192.168.23.100:2181 | tee codis.json
+
+
+———————————————————————————————————————————————————————————————————————————————
+启动各项服务，注意启动顺序：
+
+启动redis 6379和6380：
+/usr/local/codis/bin/codis-server /usr/local/codis/conf/redis6379.conf 
+/usr/local/codis/bin/codis-server /usr/local/codis/conf/redis6380.conf 
+
+
+##启动dashboard：
+nohup /usr/local/codis/bin/codis-dashboard --ncpu=2 --config=/usr/local/codis/dashboard.toml --log=/usr/local/codis/log/dashboard.log --log-level=WARN &
+
+
+##启动proxy：
+nohup /usr/local/codis/bin/codis-proxy --ncpu=2 --config=/usr/local/codis/proxy.toml --log=/usr/local/codis/log/proxy.log --log-level=WARN &
+
+
+##添加代理：
+/usr/local/codis/bin/codis-admin --dashboard=192.168.23.100:18080 --create-proxy -x 192.168.23.100:11080
+
+
+##启动fe：
+nohup /usr/local/codis/bin/codis-fe --ncpu=2 --log=/usr/local/codis/log/fe.log --log-level=WARN --dashboard-list=/usr/local/codis/codis.json --listen=0.0.0.0:18081 &
+
+
+##启动ha：
+nohup /usr/local/codis/bin/codis-ha --log=/usr/local/codis/log/ha.log --log-level=WARN --dashboard=127.0.0.1:18080 &
+
+
+
+浏览器访问http://192.168.23.100:18081 出图
+
+
+———————————————————————————————————————————————————————————————————————————————
+报错总结：
+make codis的时候报错not found 文件是因为go的版本太低，安装高版本即可
+
+启动服务的时候发现dashboard的进程自己崩溃是因为，强制关闭dashboard服务之后，需要执行解锁操作。
+/usr/local/codis/bin/codis-admin --remove-lock --product=codis-demo --zookeeper=192.168.23.100:2181
+
+启动服务总是自己崩溃，注意启动顺序，查看日志。
+
+打开仪表盘发现没有zookepper集群，检查dashboard文件，还有启动ha服务的时候，注意路径。
+
+redis 6379和6380没启动，检查配置文件。
+
+仪表盘无法添加主机到组，是因为redis配置文件的bind和port写错了。
+
+仪表盘无法通讯其他主机，是因为redis里面设置了密码，而dashboard里面没有添加密码认证。
+
+

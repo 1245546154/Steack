@@ -1,0 +1,70 @@
+memcached 内部不会监视记录是否过期，而是在 get时查看记录的时间戳，检查记录是否过期lazy（惰性）expiration 懒惰机制
+
+如 php的里session机制 懒惰机制 php垃圾回收机制 gc回收
+
+Lazy?Expiration 用来检查记录是否过期 lazy惰性 exoiration   因此memcached 不会在过期监视上耗费 CPU 时间
+
+
+LRU 机制来分配空间  这是删除“最近最少使用”的记录的机制，因此当memcached的内存空间不足的时候 就从最近未被使用的记录中搜索，并将其空间分配给新的记录。从缓存的实用角度来说，该模型很合理。
+
+LRU：内存管理的一种页面置换算法，对于在内存中不使用的数据库称之为LRU。
+
+不会存满  有懒惰机制  看似是满的 但是会自动删除过期的数据   
+
+
+
+key过期了 会被删除吗  当存不下或者过期之后才会被删除    
+
+telnet 
+
+set name 0 8秒 6长度   
+
+懒惰机制：之前版本一直不去检测  新的版本优化之后会进行定期检测
+
+不过有些LRU机制会删除一些 今后想用的缓存   使用-M参数来禁用LRU   写满之后会给出一个错误（内存已满）
+
+热点数据  一般都放在缓存中 
+
+--------------------------------------------------------------------------------
+
+memcache的小工具
+memcache.php
+用来检测内存缓存的一种web图形化工具  依赖于php
+
+
+memadmin 用于负责监控的服务器上用来管理多个memcached 需要依赖php 依赖于libevent
+
+--------------------------------------------------------------------------------
+
+session入memcache共享	
+
+session入库，就是重写session制机，在session的周期内，获得到session的数据并记录到数据库
+
+使用分布式架构，负载均衡之后，请求会被分发到不同的服务器，登录或者验证码需要获取存储的session值，如果每次都随机的分配到不同web服务器，就不能够获取到session（生成在web1，校验在web2） 使用ip_hash  同IP用户访问同一个web服务器
+
+通过session共享的方式   入mysql  memcached（内存存储，最优）
+
+以cookie加密的方式保存在客户端.优点是减轻服务器端的压力，缺点是受到cookie的大小限制，可能占用一定带宽
+
+web服务器都需要修改,并且web服务器都要安装好memcache扩展
+
+vim /usr/local/nginx/html/tp5shop/application/config.php 
+在网页的配置文件里面修改对应的数据（交给开发完成）
+
+--------------------------------------------------------------------------------
+
+多实列memcache使用
+
+单台通过监听不同的端口启动多个
+/usr/local/memcached/bin/memcached -uroot -d -p11211
+/usr/local/memcached/bin/memcached -uroot -d -p11212
+/usr/local/memcached/bin/memcached -uroot -d -p11213
+
+--------------------------------------------------------------------------------
+
+缓存热点数据	
+把经常访问到的数据，发生变动较小，可以存储到内存缓存中，提供使用速度
+
+vim /usr/local/nginx/html/tp5shop/application/home/controller/Base.php
+
+

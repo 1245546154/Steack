@@ -1,0 +1,87 @@
+命令  选项   参数
+
+对象存储  在存储的时候创建了一个存储对象。 
+
+先把对象放到存储里，想要使用的时候先get下来  不能直接读取文件内容。
+
+
+
+ fdisk   gdisk 
+
+A.负载均衡集群
+
+lvs
+
+haproxy
+nginx
+
+f5
+a10
+lvs + ospf 
+
+B.集群
+
+C.高可用集群
+   keepalived(VRRP)
+
+
+RHCS 红帽集群套件
+
+pacemaker
+
+
+
+D.存储集群
+   glusterfs
+   cepf
+   fastDFS
+   moosefs
+   hdfs 
+
+E.数据库集群
+mysql  主从复制   
+mycat
+
+ansible 
+类Unix
+openstack
+
+oracal
+
+
+db2 
+mongodb 
+   副本集
+   分片
+
+
+F.高性能计算集群
+
+大数据里面
+hadoop 
+生态圈
+25组件
+
+系统
+系统预备工具
+  pxe
+  kickstart
+  cobbler
+
+
+配置 
+puppet  ruby  yum pip gem
+ruby （日本开发）
+chef （编程工具）
+
+
+ansible python ssh 
+salt stack
+salt server
+salt agent
+
+
+
+
+
+

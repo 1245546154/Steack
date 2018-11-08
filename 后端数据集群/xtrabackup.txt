@@ -1,0 +1,104 @@
+实例1
+使用innobackupex+binlog实现增量备份并恢复演练
+tar -xvf percona-xtrabackup-2.4.7-Linux-x86_64.tar.gz
+
+cd percona-xtrabackup-2.4.7-Linux-x86_64/
+
+pwd
+
+echo export PATH=/packup/percona-xtrabackup-2.4.7-Linux-x86_64/bin:/mydb/mysql31/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin >> /etc/profile
+
+echo $PATH
+
+source /etc/profile
+
+
+mysql> grant reload,process,lock tables,replication client on *.* to 'admin'@'localhost' identified by '123456';
+
+mysql> flush privileges;
+
+mkdir /backup/
+
+chmod 777 /backup
+
+vim /mydb/mysql31/my.cnf
+
+log_bin = /mydb/mysql31/mybinlog.000001
+
+service mysql31 restart
+
+innobackupex --user=admin --password=123456 /backup/ 全量
+
+ls /backup/
+
+
+cd /backup/XXXXXX
+
+cat xtrabackup_binlog_info
+
+
+数据库里面增删改查
+
+mysqlbinlog --start-position=1454 mybinlog.000001 > /backup/`date +%F`.sql   增量
+
+mysql> source /backup/2017-07-14.sql  还原增量备份
+
+rm -rf /mydb/mysql31/data/*
+
+vim /mydb/mysql31/my.cnf 
+修改
+basedir=
+datadir=
+port=
+
+innobackupex --defaults-file=/mydb/mysql31/my.cnf --copy-back /backup/XXXXXX  注：datadir必须为空 
+
+chown mysql. -R /mydb/mysql31/
+
+service mysql31 restart
+
+reboot 
+
+mysql -S /mydb/mysql31/mysql31.sock -uroot -p123
+
+
+实例2
+通过innobackupex实现全量和增量备份
+innobackupex --user=admin -S /mydb/mysql31/mysql31.sock -uroot -p123 /备份目录/ 全量
+
+cat /备份目录/AAAAAAA/xtrabackup_checkpoints
+
+增删改查
+
+mkdir /备份目录2
+
+innobackupex --incremental /备份目录2 --incremental-basedir=/备份目录/AAAAAAA -S /mydb/mysql31/mysql31.sock -uroot -p123 增量
+
+注：上一次增量备份的目录和备份文件
+
+cat /incremental_bak/BBBBBBB/xtrabackup_checkpoints
+
+innobackupex --incremental /备份目录2/ --incremental-basedir=/备份目录2/BBBBBBB --user=admin -S /mydb/mysql31/mysql31.sock -uroot -p123 
+注：上一次增量备份的目录和备份文件
+
+
+注意：全量和增量都备份完毕后，最后统一应用日志到全量备份集中！！！！！！！
+
+应用日志到备份集
+innobackupex --apply-log /备份目录/AAAAAAAA/
+
+应用增量备份1
+innobackupex --apply-log-only --redo-only /备份目录/AAAAAAAA/ --incremental-dir=/备份目录2/2018-08-05_17-02-51 -S /mydb/mysql31/mysql31.sock -uroot -p123
+
+应用增量备份2 
+innobackupex --apply-log-only --redo-only /备份目录/AAAAAAAA --incremental-dir=/备份目录2/2018-08-05_16-59-00 -S /mydb/mysql31/mysql31.sock -uroot -p123
+
+注：--redo-only除了最后一个不用加之外，其他的增量应用都要加，最后一个应用的时候可以直接进入回滚未提交事务阶段。
+
+innobackupex --no-timestamp --defaults-file=/mydb/mysql31/my.cnf --copy-back  /备份目录/BBBBBBBB/
+
+chown -R mysql.mysql /mydb/mysql31/data/
+
+reboot
+
+service mysql31 restart

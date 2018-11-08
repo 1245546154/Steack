@@ -1,0 +1,215 @@
+修改mysql my.cnf文件  添加 read-only=1
+
+
+mycat------------------------------------------------------------------------------
+
+在中间件上安装mycat读写分离 
+
+安装jdk
+tar zxvf jdk-10.0.1_linux-x64_bin.tar.gz
+mkdir /usr/local/java/jdk/
+mv jdk-10.0.1 /usr/local/java/jdk-10.0.1
+
+安装mycat
+tar xvf Mycat-server-1.6.5-release-20180122220033-linux.tar.gz -C /usr/local
+
+
+配置环境变量
+vim /etc/profile
+
+export JAVA_HOME=/usr/local/java/jdk/jdk-10.0.1
+export JAVA_BIN=/usr/local/java/jdk/jdk-10.0.1/bin
+export PATH=$PATH:/usr/local/java/jdk/jdk-10.0.1/bin
+export CLASSPATH=./:/usr/local/java/jdk-10.0.1/lib:/usr/local/java/jdk/jdk-10.0.1/lib
+MYCAT_HOME=/usr/local/mycat/bin
+export JAVA_HOME JAVA_BIN PATH CALSSPATH MYCAT_HOME
+
+使配置生效
+source /etc/profile
+
+tar xvf Mycat-server-1.6.5-release-20180122220033-linux.tar.gz -C /usr/local
+
+cd /usr/local/mycat/conf
+
+修改
+vim schema.xml
+<?xml version="1.0"?>
+<!DOCTYPE mycat:schema SYSTEM "schema.dtd">
+<mycat:schema xmlns:mycat="http://io.mycat/">
+
+        <schema name="TESTDB" checkSQLschema="false" sqlMaxLimit="100" dataNode="dn_test"> </schema>
+        <dataNode name="dn_test" dataHost="dh_43" database="tp5shop" />
+        <dataHost name="dh_43" maxCon="1000" minCon="10" balance="1"
+                          writeType="0" dbType="mysql" dbDriver="native" switchType="1"  slaveThreshold="100">
+                <heartbeat>select user()</heartbeat>
+                <!-- can have multi write hosts -->
+                <writeHost host="hostM1" url="192.168.23.132:3306" user="root"
+                                   password="123456" />
+                <writeHost host="hostS1" url="192.168.23.136:3306" user="root"
+                                   password="123456" />
+
+        </dataHost>
+       </mycat:schema>
+
+修改配置文件
+vim server.xml
+
+<user name="root" defaultAccount="true">      #中间件mysql的用户
+<property name="password">123456</property>   #中间件mysql的密码
+<property name="schemas">TESTDB</property>    #中间件mysql的虚拟库
+
+启动mycat服务
+/usr/local/mycat/bin/mycat star|stop|restart
+
+/usr/local/mycat/logs/wrapper.log  #查看报错信息error：对应处理
+
+
+vim /usr/local/mycat/conf/wrapper.conf
+wrapper.startup.timeout=300             #添加超时时间
+
+netstat -nltp|grep 9066  真实库
+netstat -nltp|grep 8066  逻辑库
+
+进入mycat的逻辑库
+mysql -uroot -p123456 -h127.0.0.1 -P8066 -DTESTDB
+
+show databases ;  #查看虚拟库
+
+use TESTDB;
+
+show tables ;   #查看真实库的表信息，必须数据一致。
+
+进入mycat的管理库
+mysql -uroot -p123456 -h127.0.0.1 -P9066
+
+show @@heartbeat;   #查看服务器状态
+#RS_CODE  1代表成功 -1和-2代表down和未连接
+
+业务代码配置
+修改database.php配置
+把mysql地址指向代理服务器的IP mycat的用户名和密码 8066端口  不需要连接真实的数据库
+
+
+当master宕机，slave可以继续写。
+vim server.xml
+
+<writeHost>  hostM1 ........</writeHost>
+<writeHost>  hostS1 ........</writeHost>
+
+mycat监控本------------------------------------------------------------------------
+
+配置完毕mycat之后  添加检测脚本并用xinetd来调用端口 
+yum install xinetd -y
+
+vim /etc/xinetd.d/mycat_status
+
+service mycat_status
+
+{
+flags = REUSE
+socket_type = stream
+port = 48700
+wait = no
+user = root
+server = /usr/local/bin/mycat_status
+log_on_failure += USERID
+disable = no
+}
+
+
+vim /usr/local/bin/mycat_status
+
+#!/bin/bash
+#/usr/local/bin/mycat_status.sh
+# This script checks if a mycat server is healthy running on localhost.
+# It will return:
+#
+# "HTTP/1.x 200 OK\r" (if mycat is running smoothly)
+#
+# "HTTP/1.x 503 Internal Server Error\r" (else)
+mycat=`/usr/local/mycat/bin/mycat status | grep 'not running' | wc -l`
+if [ "$mycat" = "0" ];
+then
+    /bin/echo -e "HTTP/1.1 200 OK\r\n"
+else
+    /bin/echo -e "HTTP/1.1 503 Service Unavailable\r\n"
+fi
+
+
+chmod +x /usr/local/bin/mycat_status
+chmod +x /etc/xinetd.d/mycat_status
+
+echo "ycat_status    48700/tcp    # mycat_status"  >> /etc/services
+
+
+service xinetd restart 
+
+netstart -lntp |grep 48700
+
+
+
+HAproxy---------------------------------------------------------------------------
+
+tar -xf haproxy。。。。
+cd haproxy。。。。
+mv haproxt。。。。 haproxy
+make TARGET=linux31 PREFIX=/usr/local/haproxy
+make install PREFIX=/usr/local/haproxy
+
+#安装完后会在安装目录下生成三个目录
+    doc sbin  share
+
+vim /usr/local/haproxy/haproxy.cfg   #默认没有配置文件 需要手动创建
+
+global                                               # 全局参数的设置
+    log         127.0.0.1 local2                     # log语法：log <address_1>[max_level_1] 
+# 全局的日志配置，使用log关键字，指定使用127.0.0.1上的syslog服务中的local0日志设备，记录日志等级为info的日志
+    chroot      /var/lib/haproxy                     #改变当前工作目录
+    pidfile     /var/run/haproxy.pid                 #当前进程id文件
+    maxconn     4000                                 #最大连接数
+    user        haproxy   #haproxy 运行用户和组      #所属用户
+    group       haproxy                              #所属组
+    daemon                                           #以守护进程方式运行haproxy
+    stats socket /var/lib/haproxy/stats              #基于本地的文件传输
+
+defaults                                             # 默认部分的定义
+        log     global
+        log 127.0.0.1 local3                         # 使用127.0.0.1上的syslog服务的local3设备记录错误信息
+        mode    http                                 # mode语法：mode {http|tcp|health} 。http是七层模式，tcp是四层模式，health是健康检测
+        option  tcplog                               # 启用日志记录tcp请求
+        option  dontlognull
+        retries 10                                   # 定义连接后端服务器的失败重连次数，连接失败次数超过此值后将会将对应后端服务器标记为不可用
+        option redispatch                            # 当使用了cookie时，haproxy将会将其请求的后端服务器的serverID插入到cookie中                       
+        maxconn         2000                         #定义每个haproxy进程的最大连接数 ，由于每个连接包括一个客户端和一个服务器端，所以单个进程的TCP会话最大数目将是该值的两倍。
+        timeout connect         10s
+        timeout client          1m
+        timeout server          1m
+        timeout http-keep-alive 10s
+        timeout check           10s
+
+listen  mysql
+        bind 192.168.23.139:3307                      #对接php IP地址为本机真实地址，端口自行设置     
+        mode tcp                                      # mode语法：mode {http|tcp|health} 。http是七层模式，tcp是四层模式，health是健康检测
+        balance roundrobin                            #采用轮询的负载均衡方法，网后端server转发请求
+        server mysql1 192.168.23.137:8066 check port 48700 inter 2000ms rise 2 fall 3 weight 1  # 后端负载均衡ip 端>口 权重 check port 48700监控mycat端口
+        server mysql2 192.168.23.138:8066 check port 48700 inter 2000ms rise 2 fall 3 weight 1   
+       # check  inter 1s rise 2 fall 2 
+listen stats
+        bind 192.168.23.139:1080                      #  haproxy web监控界面及端口，自带web监控
+        mode http                                     # mode语法：mode {http|tcp|health} 。http是七层模式，tcp是四层模式，health是健康检测
+        option httplog                                # 启用日志记录HTTP请求
+        maxconn 10
+        stats refresh 30s
+        stats uri /stats                              #192.168.23.139:1080/stats 
+        stats realm XingCloud\ Haproxy
+        stats auth admin:admin                        #用这个账号登录，可以自己设置
+        stats auth Frank:Frank
+        stats hide-version                            # 隐藏统计页面上的haproxy版本信息
+        stats admin if TRUE
+
+
+/usr/local/haproxy/sbin/haproxy -f /usr/local/haproxy/haproxy.cfg  启动服务
+
+netstat -lntp | grep 1080   #查看web管理界面的端口有没有开启
+
+http://192.168.23.139:1080/stats  

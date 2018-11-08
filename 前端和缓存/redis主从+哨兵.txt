@@ -1,0 +1,67 @@
+cd /usr/local/redis/bin/
+./redis-server ./redis.conf         #启动服务
+ps -ef|grep redis                   
+killall redis-server                #关闭进程
+
+master:
+vim /usr/local/redis/bin/redis.conf
+
+576 masterauth 123456                    #master密码
+788 requirepass 123456                   #认证密码（全部一致与slave也一样）
+
+69 bind 127.0.0.1 192.168.23.130 6379       #master IP
+
+336 pidfile /var/run/redis_6379.pid                   #pid文件路径
+171 logfile "/usr/local/redis/redis.log"              #日志路径
+
+
+timeout 30          #设置超时时间                 
+daemonize yes       #
+
+253 dbfilename dump.rdb     #增量备份文件
+
+./redis-cli
+info replication
+info
+
+slave-read-only yes
+
+------------------------------------------------------------------------
+开启哨兵检测：
+
+
+vim /usr/local/redis/bin/shaobing.conf
+port 26379
+sentinel monitor mymaster 127.0.0.1 6379 2
+./redis-server shaobing.conf --sentinel
+
+
+------------------------------------------------------------------------
+
+
+slave:
+vim /usr/local/redis/bin/redis.con
+
+287 masterauth 123456
+281 slaveof 192.168.23.130 6379
+
+336 pidfile /var/run/redis_6379.pid
+171 logfile "/usr/local/redis/redis.log"
+
+daemonize yes
+timeout 30
+
+253 dbfilename dump.rdb
+
+./redis-server ./redis.conf         #启动服务
+ps -ef|grep redis
+killall redis-server                #关闭进程
+
+
+722 slave-priority 100              #从优先级
+
+./redis-cli
+info replication
+info
+
+slave-read-only yes    #从设置只读  读写分离

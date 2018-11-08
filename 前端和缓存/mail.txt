@@ -1,0 +1,11 @@
+yum install mailx sendmail  -y  
+
+vi /etc/mail.rc
+set bsdcompat
+set from=server admin                     #来自邮件地址
+set smtp=smtp.qq.com                      #使用的邮箱协议
+set smtp-auth-user=1245546154@qq.com      #同上from即可
+set smtp-auth-password=vupmkkqgqrxegcfc   #SMTP密码
+set smtp-auth=login                       #默认
+
+echo "mysql服务down掉了`date +%F-%T`" | 负载均衡服务器 'mail test'  1245546154@qq.com

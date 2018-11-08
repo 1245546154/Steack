@@ -1,0 +1,2 @@
+rsync+innotify：（数据自动同步）
+

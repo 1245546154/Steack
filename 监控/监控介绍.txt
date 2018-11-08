@@ -1,0 +1,52 @@
+监控服务器性能：CPU负载 内存使用 硬盘读写 服务器状态
+             ↓
+              →apache状态，lnmp状态。
+监控的主要目的是为了发现问题，解决问题。
+再出现问题之前就进行监控。
+
+趋缓而不是趋于急！！！
+
+
+企业级主流监控平台
+cacti：对监控的数据进行采集绘图 
+php：
+rrdtool：只会对于7天的数据进行绘图
+
+nagios:↓  
+       可以使用shell
+       跨平台不只可以监控windows和linux。 
+       路由器和交换机也能监控。
+       监控端，被监控端
+
+zabbix php:↓
+           支持web
+           使用率非常高
+           server，proxy，agent
+
+
+qpen-falcon 猎鹰：收集数据的及时性比较差。
+
+prometheus 普罗米修斯：收集数据的实时性非常强，但绘图能力不太好。
+
+Zabbix监控平台的组件
+      zabbix-server 监控端  
+      zabbix-agent  被监控端  (agent是部署在被监控端上的监控代理)
+      zabbix-proy   代理端  类似于server （#拓展学习）
+
+zabbix-server 主动模式 轮询
+zabbix-server 被动模式 自陷
+
+snmp协议：简单网络管理协议
+v1
+v2 
+v3
+
+轮询：
+自陷：
+
+pam认证
+       资源管理
+       用户名和密码的认证
+
+
+zabbix是免费的，使用灵活的通讯机制，允许用户为任何事情配置基于邮件的告警，zabbix提供了出色的报告和数据可视化功能。

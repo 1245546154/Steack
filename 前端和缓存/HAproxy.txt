@@ -1,0 +1,65 @@
+HAproxy---------------------------------------------------------------------------
+
+tar -xf haproxy。。。。
+cd haproxy。。。。
+mv haproxt。。。。 haproxy
+make TARGET=linux31 PREFIX=/usr/local/haproxy
+make install PREFIX=/usr/local/haproxy
+
+#安装完后会在安装目录下生成三个目录
+    doc sbin  share
+
+vim /usr/local/haproxy/haproxy.cfg   #默认没有配置文件 需要手动创建
+
+global                                               # 全局参数的设置
+    log         127.0.0.1 local2                     # log语法：log <address_1>[max_level_1] 
+# 全局的日志配置，使用log关键字，指定使用127.0.0.1上的syslog服务中的local0日志设备，记录日志等级为info的日志
+    chroot      /var/lib/haproxy                     #改变当前工作目录
+    pidfile     /var/run/haproxy.pid                 #当前进程id文件
+    maxconn     4000                                 #最大连接数
+    user        haproxy   #haproxy 运行用户和组      #所属用户
+    group       haproxy                              #所属组
+    daemon                                           #以守护进程方式运行haproxy
+    stats socket /var/lib/haproxy/stats              #基于本地的文件传输
+
+defaults                                             # 默认部分的定义
+        log     global
+        log 127.0.0.1 local3                         # 使用127.0.0.1上的syslog服务的local3设备记录错误信息
+        mode    http                                 # mode语法：mode {http|tcp|health} 。http是七层模式，tcp是四层模式，health是健康检测
+        option  tcplog                               # 启用日志记录tcp请求
+        option  dontlognull
+        retries 10                                   # 定义连接后端服务器的失败重连次数，连接失败次数超过此值后将会将对应后端服务器标记为不可用
+        option redispatch                            # 当使用了cookie时，haproxy将会将其请求的后端服务器的serverID插入到cookie中                       
+        maxconn         2000                         #定义每个haproxy进程的最大连接数 ，由于每个连接包括一个客户端和一个服务器端，所以单个进程的TCP会话最大数目将是该值的两倍。
+        timeout connect         10s
+        timeout client          1m
+        timeout server          1m
+        timeout http-keep-alive 10s
+        timeout check           10s
+
+listen  mysql
+        bind 192.168.23.139:3307                      #对接php IP地址为本机真实地址，端口自行设置     
+        mode tcp                                      # mode语法：mode {http|tcp|health} 。http是七层模式，tcp是四层模式，health是健康检测
+        balance roundrobin                            #采用轮询的负载均衡方法，网后端server转发请求
+        server mysql1 192.168.23.137:8066 check port 48700 inter 2000ms rise 2 fall 3 weight 1  # 后端负载均衡ip 端>口 权重 check port 48700监控mycat端口
+        server mysql2 192.168.23.138:8066 check port 48700 inter 2000ms rise 2 fall 3 weight 1   
+       # check  inter 1s rise 2 fall 2 
+listen stats
+        bind 192.168.23.139:1080                      #  haproxy web监控界面及端口，自带web监控
+        mode http                                     # mode语法：mode {http|tcp|health} 。http是七层模式，tcp是四层模式，health是健康检测
+        option httplog                                # 启用日志记录HTTP请求
+        maxconn 10
+        stats refresh 30s
+        stats uri /stats                              #192.168.23.139:1080/stats 
+        stats realm XingCloud\ Haproxy
+        stats auth admin:admin                        #用这个账号登录，可以自己设置
+        stats auth Frank:Frank
+        stats hide-version                            # 隐藏统计页面上的haproxy版本信息
+        stats admin if TRUE
+
+
+/usr/local/haproxy/sbin/haproxy -f /usr/local/haproxy/haproxy.cfg  启动服务
+
+netstat -lntp | grep 1080   #查看web管理界面的端口有没有开启
+
+http://192.168.23.139:1080/stats  

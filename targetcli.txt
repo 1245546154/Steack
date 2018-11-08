@@ -1,0 +1,43 @@
+targetcli   配置的交互模式 （centos7上的操作）
+
+ls 
+backstores/
+ls
+cd block
+ls
+create
+
+create san /dev/sdb
+ls
+
+cd iscsi
+
+wwn(全球唯一名称) 公网IP  MAC地址
+create wwn=
+
+lsblk
+cd iqn.2018009.com.smartgo:target1/tpg1/
+cd luns
+create /backstores/block/san
+
+set attribute 
+
+set attribute demo_mode_write_protect=0
+set attribute generate_node_acls=1
+set attribute cache_acls_acls=1
+saveconfig
+
+
+
+
+
+yum install -y iscsi-initiator-utils
+iscsiadm --mode discoverydb --type sendtargets --portal 192.168.XX.XX --discover   
+
+systemctl restart iscsid
+
+lsblk
+
+
+
+

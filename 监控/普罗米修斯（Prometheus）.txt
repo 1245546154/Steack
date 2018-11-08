@@ -1,0 +1,51 @@
+Prometheus和grafana 配合使用
+
+Prometheus：
+Prometheus server主要负责数据的收集，存储并对外提供数据查询支持实际的监控样本数据的收集则是由Exporter完成。
+
+Exporter可以是一个独立运行的程序，对外暴露的一个用于获取监控数据的HTTP服务。
+一般用在被监控服务端里  
+
+————————————————————————————————————————————————————————————
+
+监控端：192.168.23.10
+
+vim /root/prometheus-2.4.3.linux-amd64/prometheus.yml 
+
+    static_configs:
+    - targets: ['192.168.23.10:9090']         #添加监控端的主机
+  - job_name: 'node1'
+    static_configs:
+    - targets: ['192.168.23.15:9100']         #添加被监控的主机
+
+
+./prometheus --config.file=/root/prometheus-2.4.3.linux-amd64/prometheus.yml                        #启动服务
+
+netstat -ntpl | grep 9090  
+http://192.168.23.10:9090                   #打开浏览器验证
+
+################################################################################################################
+
+yum install grafana-5.3.0-1.x86_64          #安装grafana
+
+systemctl start grafana-server.service      #启动grafana
+
+http://192.168.23.10:3000/login             #使用web页面访问grafana
+
+##默认用户名：admin  默认密码：admin##
+
+
+————————————————————————————————————————————————————————————
+
+部署被监控端：192.168.23.15
+
+tar -xvzf node_exporter-0.16.0.linux-amd64.tar.gz    #解压监控插件
+
+cd node_exporter-0.16.0.linux-amd64/
+
+./node_exporter     #启动监控插件
+
+
+————————————————————————————————————————————————————————————
+
+

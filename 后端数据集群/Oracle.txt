@@ -1,0 +1,93 @@
+Centos7中部署安装Oracle 12c  
+
+orcale 高可用软件    （DataGuard） （Orcale Golden Gate） （RAC）
+
+
+————————————————————————————————————————————————————
+
+使用SHH 登陆服务器的ROOT用户进行一下的配置
+groupadd oinstall     				    # 创建组1
+groupadd dba          				    # 创建组2
+groupadd oper         				    # 创建组3
+
+useradd -g oinstall -G dba,oper oracle              #将用户归属到oinstall组中
+echo "123456" | passwd --stdin oracle               #重置密码
+
+
+mkdir -p /orcl/app/oracle/product/12.1.0/db_1       #创建HOME主目录
+
+chown -R oracle:oinstall /orcl/app                  #更改文件所有者
+chmod -R 775 /orcl/app                              #给予权限
+
+
+
+
+手动修改内核参数：（安装过程中有脚本自动修复，否则会出错）  
+            
+fs.aio-max-nr = 1048576  
+fs.file-max = 6815744  
+kernel.shmall = 2097152  
+kernel.shmmax = 1200000000    
+kernel.shmmni = 4096  
+kernel.sem = 250 32000 100 128  
+net.ipv4.ip_local_port_range = 9000 65500  
+net.core.rmem_default = 262144  
+net.core.rmem_max = 4194304  
+net.core.wmem_default = 262144  
+net.core.wmem_max = 1048576
+改好后，使之生效
+
+
+sysctl -p
+
+
+————————————————————————————————————————————————————
+
+
+在桌面环境下登陆orcale用户进行以下配置 注（su不好使，必须要直接登陆用户）否则会出现显示器颜色检测未通过
+
+/usr/local/orcale/database/runInstaller       #运行安装程序（SSH可以使用X11）
+
+
+创建产品清单：需要注意数据库目录和主程序目录等。
+
+先决条件坚持：需要注意检测先决条件，如“最大堆栈大小问题”需要使用root用户运行修复脚本，之后重启服务器才能生效
+
+会有一些警报信息，直接选择忽略就行（或者手动修改内核参数）
+
+
+安装途中会需要运行配置脚本：
+
+/home/oracle/app/oraInventory/orainstRoot.sh
+
+/home/oracle/app/oracle/product/12.2.0/dbhome_1/root.sh
+
+##提示[/usr/local/bin]时 默认可以回车，也可以自己指定路径
+
+提示是否安装(TFA)工具：yes可以进行安装 no：则跳过
+
+
+————————————————————————————————————————————————————
+
+vim .bash_profile     #修改环境变量
+
+export PATH=$PATH:$HOME/.local/bin:$HOME/bin       					 #默认将索引到bin目录下
+export RACLE_BASE=/home/oracle/app/oracle/                                               #Orcale基目录
+export ORACLE_PATH=/home/oracle/app/oracle/product/12.2.0/dbhome_1/rdbms/admin/          #数据库软件位置
+export ORACLE_HOME=/home/oracle/app/oracle/product/12.2.0/dbhome_1/                      #数据库软件位置
+export ORACLE_SID=orcl									 #全局数据库名
+export PATH=$ORACLE_HOME/bin:$PATH  						    	 #默认
+
+
+
+which sqlplus  #查看启动文件的路径是否添加成功
+
+
+————————————————————————————————————————————————————
+
+lsnrctl start     #启动lsnrctl监听
+
+lsnrctl status    #查看lsnrctl监听状态
+
+sqlplus /nolog    #打开数据库
+

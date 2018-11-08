@@ -1,0 +1,8 @@
+#VERSION_NUMBER=2.6.1.0-143
+[ambari-2.6.1.0]
+name=ambari Version - ambari-2.6.1.0
+baseurl=http://192.168.23.10:8081/ambari-hdp/ambari/centos7/2.6.1.0-143/ambari/
+gpgcheck=0
+gpgkey=http://public-repo-1.hortonworks.com/ambari/centos7/2.x/updates/2.6.1.0/RPM-GPG-KEY/RPM-GPG-KEY-Jenkins
+enabled=1
+priority=1

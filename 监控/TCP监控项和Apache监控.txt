@@ -1,0 +1,96 @@
+模板可以应用于主机和群组
+说明：根据企业的业务内容来自定义合适的模板，所有主机都可以使用这个定义模板，这样方便管理。
+
+
+内存	触发器 1	vm.memory.size[available]
+Disk	触发器 1	vfs.fs.size[/,free]
+cpu	触发器 1	system.cpu.load[percpu,avg1]
+
+
+仪表盘——添加仪表盘——类型（图形）——动态监测——添加图形
+
+
+#自定义监控项（key）
+
+
+ss -an | grep -i listen | wc -l     #查看当前TCP协议的连接数
+
+
+vim /etc/zabbix/zabbix_agentd.conf        
+       286行  UnsafeUserParameters=1
+       296行  UserParameter=tcp.status.listen,ss -an | grep -i listen | wc -l 
+
+
+zabbix_get -s 192.168.23.15（被监控端的IP） -k tcp.status.listen    #在监控端使用此条命令
+
+
+#在web管理页面添加监控项（key）
+smarthostone_tcp_status         
+
+
+检测端口，连接数，断开各种状态：         (286行  UnsafeUserParameters=1)
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+#TCP 监控80端口状态
+#被监控端配置文件。
+vim /etc/zabbix/zabbix_agentd.d/tcp.conf    #结尾必须是.conf
+
+UserParameter=tcp.status.listen,ss -an | grep :80 | grep -i 'LISTEN' | wc -l 
+UserParameter=tcp.status.timewait,ss -an | grep :80 | grep -i 'TIME-WAIT' | wc -l
+UserParameter=tcp.status.timewait,ss -an | grep :80 | grep -i 'TIME-WAIT' | wc -l
+UserParameter=tcp.status.estab,ss -anput | grep :80 | grep -i 'ESTAB' | wc -l
+UserParameter=tcp.status.syn_recv,ss -an | grep :80 | grep -i 'SYN_RECV' | wc -l
+UserParameter=tcp.status.syn_sent,ss -an | grep :80 | grep -i 'YN_SENT' | wc -l
+UserParameter=tcp.status.close,ss -an | grep :80 | grep -i 'CLOSE' | wc -l
+
+zabbix_get -s 192.168.23.15 -k tcp.status[LISTEN]
+
+zabbix_get -s 192.168.23.15 -k tcp.status[TIME-WAIT]
+
+################################################################
+UserParameter=tcp.status[*],ss -an | grep :80 | grep -i '$1' | wc -l
+################################################################
+
+
+
+#监控端查看监控项
+zabbix_get -s 192.168.23.15 -k tcp.status[LISTEN]
+zabbix_get -s 192.168.23.15 -k tcp.status[TIME-WAIT]
+zabbix_get -s 192.168.23.15 -k tcp.status[ESTAB]
+zabbix_get -s 192.168.23.15 -k tcp.status[SYN_RECV]
+zabbix_get -s 192.168.23.15 -k tcp.status[YN_SENT]
+zabbix_get -s 192.168.23.15 -k tcp.status[CLOSE]
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+mysql -uroot -p
+show status;       #查看数据库中所有的健
+
+vim /etc/zabbix/zabbix_agentd.d/userparameter_mysql.conf
+
+-----------------------------------------------------------------------------------------------------------------------------
+vim /etc/httpd/conf.d/zabbix_apache_status.conf
+
+<Location /server-status>
+SetHandler server-status
+Order deny,allow
+Deny from all
+Allow from 192.168.72.147/24    #必须写监控端IP地址
+</Location>
+ExtendedStatus On
+<Location /server-info>
+SetHandler server-info
+Order deny,allow
+Deny from all
+Allow from 192.168.72.147/24
+</Location>
+
+
+systemctl restart httpd.service
+
+http://192.168.23.15/server-status
+##Apache Server Status for 192.168.23.15 (via 192.168.23.15)##
+

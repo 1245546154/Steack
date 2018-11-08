@@ -1,0 +1,177 @@
+软件部署流程
+
+将制定的安装包拷贝到任意目录下，然后运行nagiosinstall.sh进行安装
+
+安装完毕后 ls会显示如下文件
+
+bin                  #二进制启动目录
+etc/objects          #配置目录
+include  
+libexec              #插件目录 
+sbin                 #启动服务目录  
+share  
+var 
+
+默认不存在需要手动创建
+vim etc/objects/hosts.cfg          
+#定义主机地址
+define host {
+        use             linux-server             #默认就行
+        host_name       192.168.23.133           #主机IP   
+        alias           192.168.23.133           #备注
+        address         192.168.23.133           #目标IP地址
+}
+#定义被监控的服务器
+define hostgroup {                               #定义主机组
+        hostgroup_name          shop-servers     #组名
+        alias                   shop-servers     #备注
+        members         192.168.23.133           #成员IP
+}
+
+
+默认不存在需要手动创建
+vim etc/objects/services.cfg
+#定义监控服务（对应libexec内的服务插件）
+define service {
+        use                     local-service
+        host_name               192.168.23.133
+        service_description     ping
+        check_command           check_ping!100.0,20%!200.0,50%
+}
+
+define service {
+        use                     local-service
+        host_name               192.168.23.133
+        service_description     Nginx
+        check_command           check_tcp! 80
+}
+
+define service {
+        use                     local-service
+        host_name               192.168.23.133
+        service_description     SSH
+        check_command           check_ssh
+}
+
+define service {
+        use                     local-service
+        host_name               192.168.23.133
+        service_description     ftp
+        check_command           check_ftp
+}
+
+
+service nagios reload
+http://监控服务IP/nagios
+
+-------------------------------------------------------------------------------------------------------------------------------
+#监控远程主机私有资源
+
+#被监控端服务器安装nrpe
+useradd nagios
+passwd nagios
+tar xvf nagios-plugins-2.2.1.tar.gz
+cd nagios-plugins-2.2.1/
+./configure --prefix=/usr/local/nagios
+make && make install
+chown nagios.nagios /usr/local/nagios/
+chown -R nagios.nagios /usr/local/nagios/libexec/
+
+
+#安装依赖软件xinetd和nrpe
+yum install -y net-snmp
+yum install xinetd -y
+tar xvf nrpe-3.2.1.tar.gz 
+cd nrpe-3.2.1
+./configure 
+make all 
+make install-plugin 
+make install-daemon
+make install-config 
+make install-inetd
+
+#修改xinetd托管文件           
+vim /etc/xinetd.d/nrpe
+{
+disable         = no                           #设置开机自启（必须为no否则启动服务会启不开）
+only_from       = 127.0.0.1 192.168.23.134     #指定允许访问的IP地址。
+}
+
+vim /etc/services
+nrpe       5666/tcp      #添加nrpe的端口号到系统文件中
+
+vim /usr/local/nagios/etc/nrpe.cfg   #检查被监控端服务器的插件状态
+
+service xinetd restart
+netstat -lntp | grep 5666
+
+/usr/local/nagios/libexec/check_nrpe -H 127.0.0.1
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+在监控主机上安装nrpe
+tar xvf nrpe-3.2.1.tar.gz
+cd nrpe-3.2.1
+./configure
+make all
+make install-plugin
+
+/usr/local/nagios/libexec/check_nrpe -H <被检测端IP>      #检测nrpe连接状态
+
+vim /usr/local/nagios/etc/objects/commands.cfg      
+
+define command {        #在commands.cfg中增加对check_nrpe的定义
+
+    command_name    check_nrpe
+    command_line    $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$
+}
+
+vim /usr/local/nagios/etc/objects/services.cfg    #修改插件文件，用来调用被检测端的nrpe插件来检测私有资源
+
+define service {
+        use                     local-service
+        host_name               192.168.23.133
+        service_description     User
+        check_command           check_nrpe!check_users   #检查nrpe插件后必须加！接对应的插件
+}
+
+service nagios restart|reload    #两端都设置完毕后重启服务
+
+
+-------------------------------------------------------------------------------------------------------------------------------
+
+#nagios邮件报警配置
+yum install sendmail -y
+yum install mailx -y
+
+vi /etc/mail.rc          #详细看手稿中的mail
+set bsdcompat
+set from=server admin                     #来自邮件地址
+set smtp=smtp.qq.com                      #使用的邮箱协议
+set smtp-auth-user=1245546154@qq.com      #同上from即可
+set smtp-auth-password=vupmkkqgqrxegcfc   #SMTP密码
+set smtp-auth=login                       #默认
+
+echo "hello,this is the content of mail.welcome to www.mzone.cc" | mail -s "Hello from mzone.cc by pipe"1245546154@qq.com 
+
+contacts.cfg
+32 email     1245546154@qq.com
+
+
+vim /usr/local/nagios/etc/objects/command.cfg
+
+define command {
+
+    command_name    notify-host-by-email
+    command_line    /usr/bin/printf "%b" "***** Nagios *****\n\nNotification Type: $NOTIFICATIONTYPE$\nHost: $HOSTNAME$\nState: $HOSTSTATE$\nAddress: $HOSTADDRESS$\nInfo: $HOSTOUTPUT$\n\nDate/Time: $LONGDATETIME$\n" | /bin/mail -s "** $NOTIFICATIONTYPE$ Host Alert: $HOSTNAME$ is $HOSTSTATE$ **" $CONTACTEMAIL$
+}
+
+
+define command {
+
+    command_name    notify-service-by-email
+    command_line /usr/bin/printf "%b" "***** Nagios *****\n\nNotification Type: $NOTIFICATIONTYPE$\n\nService: $SERVICEDESC$\nHost: $HOSTALIAS$\nAddress: $HOSTADDRESS$\nState: $SERVICESTATE$\n\nDate/Time: $LONGDATETIME$\n\nAdditional Info:\n\n$SERVICEOUTPUT$\n" | /bin/mail -s "** $NOTIFICATIONTYPE$ Service Alert: $HOSTALIAS$/$SERVICEDESC$ is $SERVICESTATE$ **" $CONTACTEMAIL$
+
+service nagios restart
+service sendmail restart

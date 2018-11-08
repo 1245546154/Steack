@@ -1,0 +1,157 @@
+
+##Codis 是一个分布式 Redis 解决方案##  redis作为一种NoSql数据库
+
+Redis  默认端口6379
+实现活跃用户数的统计（使用了set的合集）
+
+可持久化（保证数据写到磁盘中）保证了数据的安全
+set（zset有序集合）
+
+Redis是由意大利人开发的 内存高速缓存数据库
+
+读的速度是110000次/s,写的速度是81000次/s 。
+
+Redis单个value的最大限制是1GB， memcached只能保存1MB的数据
+
+在数据存储上，在运行时其将数据存储在内存中，以实现数据的高效读写，并且根据定制的持久化规则不同，其会不定期的将数据持久化到硬盘中。
+
+key-value分布式存储系统
+
+
+-------------------------------------------------------------------------
+
+针对业务场合的使用 判断应该使用memcached还是redis
+
+
+由于Redis只使用单核，而Memcached可以使用多核。  
+不管使用哪个每秒处理请求的次数都不会成为瓶颈。
+我觉得还是需要关注内存使用率，对于分布式存储系统memcache的内存使用率更高，
+如果采用hash结构，redis的内存使用率会更高。当然，这些都依赖于具体的应用场景。
+
+使用redis做缓存，可以使用hash结构，压缩效率和使用效率更高
+
+你需要关注关注数据持久化和主从复制时，只有redis拥有这两个特性。如果你的目标是构建一个缓存在升级或者重启后之前的数据不会丢失的话，那也只能选择redis。
+
+redis支持数据持久化和主从复制。
+
+如果需要缓存的数据只是key-value这样简单的结构时，我在项目里还是采用memcache，它也足够的稳定可靠。如果涉及到存储，排序等一系列复杂的操作时，毫无疑问选择redis。
+
+redis和memecache的不同
+存储方式 数据支持类型 使用底层模型不同 运行环境不同
+
+个人总结一下，有持久化需求或者对数据结构和处理有高级要求的应用，选择redis，其他简单的key/value存储，选择memcache。
+-------------------------------------------------------------------------
+
+数据持久化操作
+
+瞬时数据：存储在内存当中，有可能会因为程序的关闭或其他原因导致内存被收回而丢失的数据。
+
+数据持久化技术：将内存中的瞬时数据保存到存储设备中，保证手机在关机的情况下数据仍然不会丢失。
+
+##### redis有部份存在硬盘上，这样能保证数据的持久性，支持数据的持久化
+
+有快照和AOF日志两种持久化方式
+
+（默认snappshoting是开启的，有一个备份的频率）
+
+save 900 1         900秒1一个key改变
+save 300 10        300秒10个key改变
+save 60 10000      60秒1万个key改变
+
+dbfilename dump.rdb  snappshoting的备份文件
+/usr/local/redis/bin/dump.rdb  备份文件
+
+
+append only file
+aof的备份频率
+
+702行 插入appendfsync everysec   每秒强制写入磁盘一次 在性能和持久化方面做到了很好的折中。
+
+
+appendfsync always    每次收到写命令就强制写入磁盘，最慢的但是保证了完全的持久化
+appendfsync no   完全依赖os，性能最好，但是持久没保证。
+
+appendonly yes 开启aof功能
+appendfilename "appendonly.aof"  备份文件
+
+-------------------------------------------------------------------------
+
+主从模式
+
+master 
+vim /usr/local/redis/bin/redis.conf
+开启监听，在网络中与其他服务器进行网络交互的网卡，默认eth0
+
+69行  bind 127.0.0.1 本机IP 
+
+bind的ip指的是其他的主机需要和这个主机通讯的ip（这个的主机）
+
+master重启服务
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+slave
+vim /usr/local/redis/bin/redis.conf
+282行 slaveof  主master的ip 
+
+288行 如果开启了密码 需要在288行输入mster密码
+masterauth <master-password>
+
+slave 重启服务
+
+slave如果要配置不允许写的操作 
+需要添加read-only 
+
+vim /usr/local/redis/bin/redis.conf 
+slave-read-only yes 
+
+------------------------------------------------------------------------
+
+安全限制
+IP限制登录
+vim /usr/local/redis/bin/redis.conf 
+
+69行  bind 127.0.0.1 本地IP
+绑定本机的第二张网卡
+
+500行 requirepass 密码
+配置登录密码
+
+master重启服务
+
+------------------------------------------------------------------------
+
+PHP扩展安装
+
+tar xvf redis-3.1.4RC1.tgz
+cd redis-3.1.4RC1
+phpize
+./configure && make && make install
+
+ll /usr/local/php/lib/php/extensions/no-debug-zts-20131226/
+三个文件 memcache.so opcache.so redis.so
+
+vim /usr/local/php/etc/php.ini
+把reids的扩展添加上去
+
+865行 extension=redis.so
+
+重启php服务
+
+vim /usr/local/nginx/html/test.php
+
+<?php
+ 	phpinfo();
+
+
+ll /usr/local/php/etc/php.ini          #从解压包目录拷贝出来 development是会报错具体代码的配置   production是只报错误  php.ini.xxxxxxxx
+
+------------------------------------------------------------------------
+
+RedisDesktopManager windows图形化redis软件 用来管理查看redis。
+
+------------------------------------------------------------------------
+
+活跃用户统计
+在用户登录的时候，把用户的username写入redis的set中
+
+

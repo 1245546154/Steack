@@ -1,0 +1,47 @@
+tar zxvf mysql-proxy-0.8.5-linux-glibc2.3-x86-32bit.tar.gz
+mv mysql-proxy-0.8.5-linux-glibc2.3-x86-32bit /usr/local/mysql-proxy
+
+
+
+
+cd /usr/local/mysql-proxy
+mkdir lua #创建脚本存放目录
+mkdir logs #创建日志目录
+cp share/doc/mysql-proxy/rw-splitting.lua ./lua #复制读写分离配置文件
+cp share/doc/mysql-proxy/admin-sql.lua ./lua #复制管理脚本
+
+vi /etc/mysql-proxy.cnf   #创建配置文
+
+[mysql-proxy]
+user=root #运行mysql-proxy用户
+admin-username=lin3615 #主从mysql共有的用户
+admin-password=123456 #用户的密码
+proxy-address=192.168.179.142:4040 #mysql-proxy运行ip和端口，不加端口，默认4040
+proxy-read-only-backend-addresses=192.168.179.147 #指定后端从slave读取数据
+proxy-backend-addresses=192.168.179.146 #指定后端主master写入数据
+proxy-lua-script=/usr/local/mysql-proxy/lua/rw-splitting.lua #指定读写分离配置文件位置
+admin-lua-script=/usr/local/mysql-proxy/lua/admin-sql.lua #指定管理脚本
+log-file=/usr/local/mysql-proxy/logs/mysql-proxy.log #日志位置
+log-level=info #定义log日志级别，由高到低分别有(error|warning|info|message|debug)
+daemon=true    #以守护进程方式运行
+keepalive=true #mysql-proxy崩溃时，尝试重启
+
+chmod 660 mysql-proxy.cnf   必须是660权限
+
+vim /usr/local/mysql-proxy/lua/rw-splitting.lua
+if not proxy.global.config.rwsplit then
+ proxy.global.config.rwsplit = {
+  min_idle_connections = 1, #默认超过4个连接数时，才开始读写分离，改为1
+  max_idle_connections = 1, #默认8，改为1
+  is_debug = false
+ }
+end
+
+
+/usr/local/mysql-proxy/bin/mysql-proxy --defaults-file=/etc/mysql-proxy.cnf
+
+/etc/init.d/mysql-proxy start
+
+netstat -tupln | grep 4000 #已经启动
+
+killall -9 mysql-proxy #关闭mysql-proxy使用
