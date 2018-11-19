@@ -1,0 +1,135 @@
+将容器管理分为三层：
+1.工程  
+2.服务  
+3.容器
+
+
+Docker Compose 运行的目录下所有文件组成一个工程，若无特殊指定工程名即为当前目录名，一个工程当中可包含多个服务，每个服务中定义了容器运行的镜像。
+（参数，依赖，一个服务中可包含多个容器实例）
+
+Docker Compose并没有解决负载均衡的问题，因此需要借助其他工具实现服务发现及负载均衡
+
+
+
+
+使用Compose的基本分为三步：
+1.Dockerfile 定义应用的运行环境
+2.docker-compose.yml 定义组成的各服务
+3.docker-compose up 启动整个应用
+
+
+
+——————————————————————————————————————————————————————————————-
+配置：
+
+yum install epel-release -y
+yum install  python2-pip -y
+pip install --upgrade pip
+pip install docker-compose   
+
+pip install docker-compose  --ignore-installed requests    #提示依赖问题运行参数直接忽略依赖
+
+
+
+
+
+git clone https://github.com/jiekechoo/docker-haproxy       #部署配置HAproxy
+
+
+cd docker-haproxy/
+
+
+############################################
+vim haproxy/haproxy.cfg
+listen stats
+    bind *:70
+    stats enable
+    stats uri /
+
+
+
+frontend balancer      #前端服务器
+backend web_backends   #后端服务器
+balance roundrobin     #调度器轮询
+############################################
+vim web/index.py       #第二行注释删除（版本作者的信息）
+
+
+
+
+
+
+######################
+vim docker-compose.yml
+
+haproxy:
+    image: haproxy:latest
+    volumes:
+        - ./haproxy:/haproxy-override
+        - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+
+
+######################
+
+
+
+
+docker-compose up -d      #启动
+docker-compose down -d	  #关闭
+
+
+http://192.168.23.110:80    
+http://192.168.23.110:70    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

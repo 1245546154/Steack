@@ -26,11 +26,26 @@ mysql的三种备份：
 服务器配置文件
 
 
+
+MySql中支持事务的引擎
+在mysql中用的最多的存储引擎有：innodb，bdb，myisam ,memory 等
+
+innodb和bdb支持事务
+
+myisam等不支持事务
+
+
+cp  tar:       等归档复制工具: 物理备份工具, 适用于所有的存储引擎, 冷备、完全备份、部分备份
+
 mysqldump:     逻辑备份工具, 适用于所有的存储引擎, 支持温备、完全备份、部分备份、对于InnoDB存储引擎支持热备 
-cp  tar:       等归档复制工具: 物理备份工具, 适用于所有的存储引擎, 冷备、完全备份、部分备份 
-lvm2 snapshot: 几乎热备, 借助文件系统管理工具进行备份 
-mysqlhotcopy:  名不副实的一个工具, 几乎冷备, 仅支持MyISAM存储引擎 
-xtrabackup:    一款非常强大的InnoDB/XtraDB热备工具, 支持完全备份、增量备份, 由percona提供
+
+lvm2 snapshot：几乎热备, 借助文件系统管理工具进行备份 
+
+xtrabackup：只能备份InnoDB和XtraDB两种数据表, 支持完全备份、增量备份,
+
+mysqlhotcopy：几乎冷备, 仅支持myisam存储引擎 
+
+innobackupex：同时支持MyISAM跟Innodb的备份
 
 -------------——————————————————————————————————————————————————————
 
@@ -50,8 +65,19 @@ xtrabackup:    一款非常强大的InnoDB/XtraDB热备工具, 支持完全备份、增量备份, 由pe
 如果数据量很大, 而又不过分影响业务运行, 可以使用第四种方式, 使用xtrabackup进行完全备份后, 定期使用xtrabackup进行增量备份或差异备份
 
 
+xtrabackup增量备份原理
+1.首先完成一个完全备份，并记录下此时检查点的LSN 
+2.在进程增量备份时，比较表空间中每个页的LSN是否大于上次备份时的LSN，如果是，则备份该页，同时记录当前检查点的LSN。
 
 
+Xtrabackup
+　　（1）xtrabackup只能备份InnoDB和XtraDB两种数据表，而不能备份MyISAM数据表
+　　（2）innobackupex能同时备份处理innodb和myisam，但在处理myisam时需要加一个读锁
+
+
+innobackupex：同时支持myisam跟Innodb的备份
+##不管是什么做了恢复之后，一定要注意目录权限的问题和子目录下文件的权限##
+否则会出现服务启动失败。
 
 
 

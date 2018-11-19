@@ -1,65 +1,65 @@
-实例1
 使用innobackupex+binlog实现增量备份并恢复演练
+
+
+
 tar -xvf percona-xtrabackup-2.4.7-Linux-x86_64.tar.gz
-
 cd percona-xtrabackup-2.4.7-Linux-x86_64/
-
 pwd
 
+
 echo export PATH=/packup/percona-xtrabackup-2.4.7-Linux-x86_64/bin:/mydb/mysql31/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/root/bin >> /etc/profile
-
 echo $PATH
-
 source /etc/profile
 
 
-mysql> grant reload,process,lock tables,replication client on *.* to 'admin'@'localhost' identified by '123456';
 
+mysql> grant reload,process,lock tables,replication client on *.* to 'admin'@'localhost' identified by '123456';
 mysql> flush privileges;
 
-mkdir /backup/
 
+
+mkdir /backup/
 chmod 777 /backup
 
+
+
 vim /mydb/mysql31/my.cnf
-
 log_bin = /mydb/mysql31/mybinlog.000001
-
 service mysql31 restart
-
 innobackupex --user=admin --password=123456 /backup/ 全量
 
+
 ls /backup/
-
-
 cd /backup/XXXXXX
-
 cat xtrabackup_binlog_info
 
 
+
 数据库里面增删改查
-
 mysqlbinlog --start-position=1454 mybinlog.000001 > /backup/`date +%F`.sql   增量
-
 mysql> source /backup/2017-07-14.sql  还原增量备份
-
 rm -rf /mydb/mysql31/data/*
-
 vim /mydb/mysql31/my.cnf 
 修改
 basedir=
 datadir=
 port=
 
-innobackupex --defaults-file=/mydb/mysql31/my.cnf --copy-back /backup/XXXXXX  注：datadir必须为空 
 
+
+innobackupex --defaults-file=/mydb/mysql31/my.cnf --copy-back /backup/XXXXXX  注：datadir必须为空 
 chown mysql. -R /mydb/mysql31/
 
-service mysql31 restart
 
+service mysql31 restart
 reboot 
 
+
+
 mysql -S /mydb/mysql31/mysql31.sock -uroot -p123
+
+
+——————————————————————————————————————————————————————
 
 
 实例2

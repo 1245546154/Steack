@@ -1,0 +1,200 @@
+alias start='service mysql.server start'
+alias restart='service mysql.server restart'
+alias stop='service mysql.server stop'
+alias kill='pkill -9 mysqld'
+
+
+一、全库备份
+[root@mysql01 ~]# innobackupex --user=admin /xtrabackup_full/
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| db01               |
+| db02               |
+| db03               |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+7 rows in set (0.15 sec)
+
+二、全备后数据库更改操作
+mysql> drop database db02;
+Query OK, 1 row affected (0.38 sec)
+mysql> use db03
+mysql> show tables;
++----------------+
+| Tables_in_db03 |
++----------------+
+| t1             |
++----------------+
+1 row in set (0.00 sec)
+
+mysql> select * from t1;
++------+-------+
+| id   | name  |
++------+-------+
+|    1 | harry |
+|    2 | tom   |
++------+-------+
+2 rows in set (0.01 sec)
+
+mysql> insert into t1 values(3,'jack');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> update t1 set name='lisi' where id=1;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> select * from t1;
++------+------+
+| id   | name |
++------+------+
+|    1 | lisi |
+|    2 | tom  |
+|    3 | jack |
++------+------+
+3 rows in set (0.00 sec)
+
+三、增量备份1
+[root@mysql01 ~]# innobackupex --user=admin --incremental /xtrabackup_incremental/ --incremental-basedir=/xtrabackup_full/2018-08-05_10-46-26/
+
+
+四、增备1后数据库更改操作
+mysql> create database db04;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> create table db04.t1(id int,name varchar(10));
+Query OK, 0 rows affected (0.03 sec)
+mysql> insert into db04.t1 values(11,'MissHou');
+Query OK, 1 row affected (0.00 sec)
+
+mysql> select * from db04.t1;
++------+---------+
+| id   | name    |
++------+---------+
+|   11 | MissHou |
++------+---------+
+1 row in set (0.10 sec)
+
+
+五、增量备份2
+[root@mysql01 ~]# innobackupex --user=admin --incremental /xtrabackup_incremental/ --incremental-basedir=/xtrabackup_incremental/2018-08-05_11-08-50/
+
+
+六、增量备份2后数据库更改操作
+mysql> insert into db04.t1 values(12,'Mona');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select * from db04.t1;
++------+---------+
+| id   | name    |
++------+---------+
+|   11 | MissHou |
+|   12 | Mona    |
++------+---------+
+2 rows in set (0.00 sec)
+
+
+总结说明:
+1.如果数据库在第2次增量备份后发生故障，那么数据恢复时只能够使用xtrabackup全量备份+xtrabackup增量备份恢复到第2次增量的点
+2.如果要将数据库恢复到最新状态，需要结合binlog日志恢复
+3.以上全量和增量的备份集是不能用的，需要将xtrabackup_log应用到全量的备份集中才有效
+
+七、应用所有日志到全量备份集中
+	注意:
+	1). 除了最后一次增量备份应用日志可以不加--redo-only外,其他都要加;
+	    只应用已经提交的事务，不回滚未提交的事务!!!
+	2). 应用日志到全量备份集中时一定要严格按照时间顺序执行，否则无效！
+
+
+1. 应用全量备份日志xtrabackup_log到全量备份集中
+
+[root@mysql01 ~]# innobackupex --apply-log --redo-only /xtrabackup_full/2018-08-05_10-46-26/
+
+
+2. 应该第一增量备份日志到全量备份集中
+[root@mysql01 xtrabackup_incremental]# pwd
+/xtrabackup_incremental
+[root@mysql01 xtrabackup_incremental]# ll
+total 0
+drwxr-x--- 7 root root 252 Aug  5 11:08 2018-08-05_11-08-50
+drwxr-x--- 8 root root 264 Aug  5 11:12 2018-08-05_11-12-26
+
+[root@mysql01 ~]# innobackupex --apply-log --redo-only /xtrabackup_full/2018-08-05_10-46-26/ --incremental-dir=/xtrabackup_incremental/2018-08-05_11-08-50/
+
+
+3. 应用第二次增量备份日志到全量备份集中
+注意：我这里没有加--redo-only
+
+[root@mysql01 ~]# innobackupex --apply-log /xtrabackup_full/2018-08-05_10-46-26/ --incremental-dir=/xtrabackup_incremental/2018-08-05_11-12-26/
+
+注意说明:
+如果最后一次应用日志时没有加--redo-only那么以下操作可以省略；如果最后一次加了，可以使用以下语句进行回滚操作，回滚未提交的事务：
+[root@mysql01 ~]# innobackupex --apply-log /xtrabackup_full/2018-08-05_10-46-26/
+
+
+八、模拟数据损坏
+[root@mysql01 ~]# cd /usr/local/mysql/data/
+[root@mysql01 data]# rm -rf *
+
+九、使用innobackupex进行恢复
+
+[root@mysql01 data]# innobackupex --defaults-file=/usr/local/mysql/my.cnf --copy-back /xtrabackup_full/2018-08-05_10-46-26/
+[root@mysql01 data]# chown -R mysql. .
+
+十、验证数据是否一致
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| db01               |
+| db03               |
+| db04               |
+| mysql              |
+| performance_schema |
+| test               |
++--------------------+
+7 rows in set (0.00 sec)
+
+mysql> select * from db03.t1;
++------+------+
+| id   | name |
++------+------+
+|    1 | lisi |
+|    2 | tom  |
+|    3 | jack |
++------+------+
+3 rows in set (0.01 sec)
+
+mysql> select * from db04.t1;
++------+---------+
+| id   | name    |
++------+---------+
+|   11 | MissHou |
++------+---------+
+1 row in set (0.00 sec)
+
+mysql> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

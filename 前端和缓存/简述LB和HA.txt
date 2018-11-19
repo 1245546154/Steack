@@ -1,3 +1,9 @@
+Prerouting ¡ª¡ª input
+Prerouting ¡ª¡ª forward ¡ª¡ªpostrouting
+Output ¡ª¡ª postrouting
+
+
+
 ¸ºÔØ¾ùºâ·þÎñÆ÷µÄ¸ß¿ÉÓÃÐÔ£ºÒ»¾ä»°Ê¹ÓÃÆ½¾ùÎÞ¹ÊÕÏÊ±¼äÀ´¶ÈÁ¿
 HA¸ß¿ÉÓÃ  LB¸ºÔØ¾ùºâ  SA¿ÉÉìËõÐÔ  MG¿É¹ÜÀíÐÔ  CE¼Û¸ñÓÐÐ§ÐÔ
 
@@ -70,7 +76,7 @@ haproxy+keepalived ¿ÉÒÔÊµÏÖ¸ß¿ÉÓÃ¼¯ÈºµÃ´î½¨£¬Ìá¸ß¶à·þÎñÆ÷µÄÐÔÄÜ£¬²¢ÇÒÌá¸ßÕûÌåµÄ¸
 
 ¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª¡ª
 ÕÂÎÄáÔ²©Ê¿
-LVS£º£¨linuxÐéÄâ»¯·þÎñÆ÷£© 3ÖÖ¹¤×÷·½Ê½8ÖÖµ÷¶ÈËã·¨
+LVS£º£¨linuxÐéÄâ»¯·þÎñÆ÷£© 4ÖÖ¹¤×÷·½Ê½11ÖÖµ÷¶ÈËã·¨
 
 LVS¼¯Èº¼Ü¹¹µÄÓÅµã£º
 1.ÐÔÄÜ£ºÍ¨¹ýÒ»×é·þÎñÆ÷·Ö¶øÖÎÖ®£¬¿ÉÒÔ»ñµÃºÜ¸ßµÄÕûÌåÐÔÄÜ¡£
@@ -81,10 +87,10 @@ LVS¼¯Èº¼Ü¹¹µÄÓÅµã£º
 
 # #
 
-IPVS£ºIP¸ºÔØ¾ùºâÖÐ°üÀ¨ÒÔÏÂÈýÖÖ¼¼Êõ
-VS/NAT£ºÍ¨¹ýÍøÂçµØÖ·×ª»»£¬½«Ò»×é·þÎñÆ÷¹¹³ÉÒ»¸ö¸ßÐÔÄÜµÄÐéÄâ·þÎñÆ÷
-VS/TUN£ºÍ¨¹ýIPËíµÀÊµÏÖÐéÄâ·þÎñÆ÷
-VS/DR£ºÍ¨¹ýÖ±½ÓÂ·ÓÉÊµÏÖÐéÄâ·þÎñÆ÷
+IPVS
+VS/NAT
+VS/TUN
+VS/DR
 
 # #
 

@@ -1,0 +1,95 @@
+Docker：
+
+wget  下载源 或者 直接把源拷贝进去
+
+yum install  docker-ce -y 
+
+docker virsion               显示docker 状态
+
+systemctl start docker	     以守护进程启动docker
+
+
+
+
+docker run -it --name=r1 ansible/centos7-ansible:latest /bin/bash     运行容器 
+
+docker rm r1   	删除容器（以名字删除）
+
+
+docker images ls  	 查看容器状态
+
+docker ps -all  	 查看所有容器
+
+
+docker inspect  ae63  	 查看IP （输入容器编码 名称 都可以） 
+docker inspect  r1	  
+
+
+
+
+
+创建镜像
+docker export ae63ab299a84 > gaoji.tar
+导入镜像
+cat gaoji.tar | docker import - samrtgo-test
+
+
+
+
+
+docker pull ansible/centos7-ansible     下载镜像
+
+
+
+
+ctrl+p+q    切回物理系统
+
+docker attach r2    重新进入容器
+
+
+将容器内的80端口映射到物理机的80端口上
+docker run -it -p 80:80 --name=r2 ansible/centos7-ansible:latest /bin/bash   （大P是随机映射 小p是指定端口）
+
+
+数据的持久化  上一个容器创建完的文件，下一个容器执行好父目录仍然可以读取到文件
+
+docker run -it -v /home/dockerfiledir:/remotedir --name r3 ansible/centos7-ansible:latest /bin/bash
+
+docker run -it -v /home/dockerfiledir:/tmp/rrdir --name r3 ansible/centos7-ansible:latest /bin/bash
+
+
+
+
+
+docker exec r4 ping -c 4 172.17.0.3   容器外执行ping命令
+
+
+容器内安装 yum install iproute 
+
+
+将容器的改变提交成新的镜像
+
+docker commit r1 centos7:r3            	    #创建镜像（将容器内的环境布置好后）
+
+docker run -it centos7:r1 /bin/bash   	    #运行对应镜像的容器
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

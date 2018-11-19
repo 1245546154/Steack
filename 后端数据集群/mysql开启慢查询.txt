@@ -24,3 +24,11 @@ long_query_time = 1
 service mysqld restart
 
 ls /usr/local/mysql/data/slow.log
+
+
+使用脚本来截取慢查询表的数据和慢语句的数据
+
+使用脚本来截取双yes  sql线程和IO线程  来监控数据不同步 或者说是 同步断了
+
+
+监控nginx实时连接状态   使用access.log  统计

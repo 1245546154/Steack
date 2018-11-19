@@ -1,0 +1,19 @@
+普通的replication，即mysql的异步复制，依靠mysql二进制日志也即binlog进行数据复制。比如两台机器，一台主机(master)，另外一台是从机(slave)。
+
+
+正常的复制为：事务一（t1）写入binlog buffer；dumper 线程通知slave有新的事务t1；binlog buffer 进行checkpoint；slave的io线程接收到t1并写入到自己的的relay log；slave的sql线程写入到本地数据库。 这时，master和slave都能看到这条新的事务，即使master挂了，slave可以提升为新的master。
+
+
+
+
+异常的复制为：事务一（t1）写入binlog buffer；dumper 线程通知slave有新的事务t1；binlog buffer 进行checkpoint；slave因为网络不稳定，一直没有收到t1；master 挂掉，slave提升为新的master，t1丢失。
+
+很大的问题是：主机和从机事务更新的不同步，就算是没有网络或者其他系统的异常，当业务并发上来时，slave因为要顺序执行master批量事务，导致很大的延迟。
+
+
+mysql从5.5开始推出了半同步。即在master的dumper线程通知slave后，增加了一个ack，即是否成功收到t1的标志码。也就是dumper线程除了发送t1到slave，还承担了接收slave的ack工作。如果出现异常，没有收到ack，那么将自动降级为普通的复制，直到异常修复。
+
+
+
+5.7 半同步复制的改进，主从一致性加强, 支持在事务commit前等待ACK
+

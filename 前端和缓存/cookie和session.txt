@@ -20,3 +20,14 @@ Session 的作用就是它在 Web服务器上保持用户的状态信息供在任何时间从任何设备上的页
 访问 Web应用程序的每个用户都生成一个单独的 Session 对象。每个 Session 对象的持续时间是用户访问的时间加上不活动的时间。
 
 如果每个 Session 中保持许多对象，并且许多用户同时使用 Web应用程序（创建许多 Session），则用于 Session 持久性的服务器内存量可能会很大，从而影响了可伸缩性。
+
+
+session同步共享： 
+比如可以用Tomcat自带的插件进行Session同步，使得多台应用服务器之间自动同步Session，保持一致。
+如果一台发生故障，负载均衡会遍历寻找可用节点，Session也不会丢失。
+缺点：必须是Tomcat和Tomcat之间
+
+session共享：
+基于IP地址的Hash策略，将同一用户的请求都集中在一台服务器上，这台服务器上保存了该用户的Session信息
+
+一般使用把session写入memcache里面做seesion入库解决session共享的问题

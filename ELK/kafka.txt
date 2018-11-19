@@ -1,3 +1,24 @@
+kafka：分布式消息系统 ——“消息队列”是在消息的传输过程中保存消息的容器。
+
+kafka+hadoop用作数据处理平台使用，用来处理大型的数据。
+
+
+
+ELK+kafka日志系统原理（介质为日志）：
+filebeat—— kafka+zookeeper——logstash——elasticsearch——kibana   
+
+
+kafka将操作日志"批量""异步"的发送到kafka集群中，
+
+
+kafka的优势：
+1.分布式，高吞吐量，速度快（kafka是直接通过磁盘存储，线性读写，速度快：避免了数据在JVM内存和系统内存之间的复制，减少耗性能的对象创建和垃圾回收）
+2.同时支持实时和离线两种解决方案
+
+
+
+
+
 Broker：Kafka 集群包含一个或多个服务器，这种服务器被称为 broker
 Topic：每条发布到 Kafka 集群的消息都有一个类别，这个类别被称为 Topic。
 
@@ -5,7 +26,7 @@ Topic：每条发布到 Kafka 集群的消息都有一个类别，这个类别被称为 Topic。
 kafka版本 2.11.0 对应 ELK6.4.1
 
 kafka-node1:
-kafka-node2:
+kafka-node2:    
 
 ——————————————————————————————————————————————————————
 kafka-node1:

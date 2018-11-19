@@ -1,0 +1,49 @@
+查看所有数据库: show databases;
+
+创建数据库： create database niu charset utf8;
+
+删除数据库： drop database niu;
+
+选择数据库： use databases;
+
+查看所有表： show tables;
+
+查看创建数据库的语句：show create database databasename;
+
+查看创建表的语句：show create table tablename;
+
+查看表结构：desc tablenmae;
+
+
+
+
+
+增：
+#学生表
+create table students(
+id int auto_increment primary key，
+name varchar(10) not null，
+sex varchar(3) default '女',
+address varchar(50),
+phone int not null unique,
+age，
+);
+#成绩表
+create table scores(
+id int auto_increnent primary key,
+s_id int not null,
+grade float not null,
+);
+删:
+drop table tablename;
+truncate tablename;#快速删除表
+改:
+alter table oldtable rename newtable; #改表名
+alter table tablename modify name varchar(20);#改表结构
+alter table tablename change name newname varchar(20);#改表结构
+alter table tablename add age float after name;#新增字段的位置
+
+查：
+show create table tablename ;#查看新建表语句
+desc table;#查看表结构
+show tables ;#查看所有表

@@ -9,17 +9,16 @@ ansible：自动编排工具
 
 操作机  被操作机  
  
-ansible的工作流程：显示ansible访问所有主机资源，然后调用模块和自定义模块，通过插件连接（ssh协议） 
+ansible的工作流程：显示ansible访问所有记录的主机清单，然后调用核心模块和自定义模块，通过插件连接（ssh协议），通过剧本对所有要配置的机器进行自动化部署 
 
 host inventory      #（记录主机清单）
 playbooks           #（剧本概念）
-Host inventory      #（记录所有ansible管理的主机信息）
 Core Modules        #（核心模块）
 Custom Modules      #（自定义模块）
 Connection Plugins  #（连接插件）
 
 
-#nsible 特性
+#ansible 特性
 no agent  不需要安装客户端（支持ssh）
 no server 不需要启动服务 （ansible）
 YAML格式，编排任务，支持丰富的数据结构（剧本playbook）

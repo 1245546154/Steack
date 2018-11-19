@@ -1,0 +1,130 @@
+公有仓库：
+
+镜像加速器支持下载加速（不支持加速上传）
+
+
+打标记：
+docker tag XXXXXXXXXXX:XXX lijiu5514989/centos7/centos7.5-base-httpd-df:lastest
+
+
+上传：
+docker push lijiu5514989/centos7/centos7.5-base-httpd-df:lastest
+
+
+
+
+docker pull registry
+
+
+docker run -d -p 5000:5000 --restart=always \
+-v /opt/data/auth/:/auth/ \
+-e "REGISTRY_AUTH=htpasswd" \
+-e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
+-e "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd" \
+-v /opt/data/docker/registry:/var/lib/registry/ registry:latest
+
+
+vim /usr/lib/systemd/system/docker.service
+ExecStart=/usr/bin/dockerd			#后边的东西去掉
+
+
+上传
+docker tag 192.168.23.140:5000/centos7.5-base:v1 192.168.23.150:5000/centos7.5-base:v2
+
+
+————————————————————————————————————————————————————————————————————
+私有仓库：
+
+
+
+tar -xvzf harbor-offline-installer-v1.4.0.tgz    #离线安装包
+
+yum install epel-release
+yum info python2-pip
+yum install python2-pip
+pip install --upgrade pip
+pip install docker-compose  --ignore-installed requests
+
+
+
+
+##############################
+vim harbor.cfg
+
+hostname = 192.168.23.140          #本地IP或者域名
+max_job_workers = 5   		   #最大连接数
+ssl_cert = /data/cert/server.crt   #定义HTTPS
+
+
+#定义邮件（谁使用了容器发送邮件提醒）
+email_identity = 			
+email_server = smtp.mydomain.com
+email_server_port = 25
+email_username = sample_admin@mydomain.com
+email_password = abc
+email_from = admin <sample_admin@mydomain.com>
+email_ssl = false
+email_insecure = false
+
+
+harbor_admin_password = Harbor12345     #管理员密码
+auth_mode = db_auth    		        #数据库认证 
+ldap_url = ldaps://ldap.mydomain.com    #集中式认证
+
+
+#启动一个数据库容器
+db_host = mysql
+db_password = root123
+db_port = 3306
+db_user = root
+
+
+
+##############################
+
+
+./install.sh      #直接安装
+
+docker-compose stop   停止服务
+docker-compose start  启动服务
+
+
+http://192.168.23.140/harbor/projects
+
+账号：admin   密码：Harbor12345
+
+
+
+系统管理——仓库管理——创建目标——填入各种参数——创建完成
+
+
+
+vim /etc/docker/daemon.json        #将5000端口修改为默认80  因为harbor是通过TCP80端口
+
+
+
+docker push lijiu5514989/centos7/centos7.5-base-httpd-df:lastest
+
+
+
+
+
+
+vim /etc/docker/daemon.json
+        {
+            "insecure-registries": ["192.168.23.140"]
+        }
+
+
+
+docker login 192.168.23.140    		#登陆
+
+
+docker push XXXXXXX-XXXX:lastest	#之后上传
+
+
+
+
+
+
+

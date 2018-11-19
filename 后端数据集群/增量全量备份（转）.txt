@@ -1,46 +1,45 @@
-mysql全量备份、增量备份。开启mysql的logbin日志功能。在/etc/my.cnf文件中加入以下代码：
+mysql全量备份、增量备份
 
+
+————————————————————————————————————————————————————
 [mysqld]
-log-bin = "/home/mysql/logbin.log"
-binlog-format = ROW
+log-bin = "/home/mysql/logbin.log"          	 #重启mysql即可。其中路径 /home/mysql的用户和组要改成mysql。
+binlog-format = ROW                         	 #开启mysql的logbin日志功能
 log-bin-index = "/home/mysql/logindex"
 binlog_cache_size=32m
 max_binlog_cache_size=512m
 max_binlog_size=512m
-重启mysql即可。其中路径 /home/mysql的用户和组要改成mysql。
 
-2、增量备份
-在/home/mysql/目录下建立以下目录：
-mkdir -p /home/mysql/backup/daily
 
-增量备份脚本
-cd /home/mysql
 
-vi binlogbak.sh
+增量备份
+mkdir -p /home/mysql/backup/daily           	 #在/home/mysql/目录下建立以下目录：
+vi  /home/mysql/binlogbak.sh
 
+
+————————————————————————————————————————————————————
 #!/bin/bash
 export LANG=en_US.UTF-8
+
 BakDir=/home/mysql/backup/daily
 BinDir=/home/mysql
 LogFile=/home/mysql/backup/binlog.log
 BinFile=/home/mysql/logindex.index
-mysqladmin -uroot -proot123 flush-logs
-#这个是用于产生新的mysql-bin.00000*文件
-Counter=`wc -l $BinFile |awk '{print $1}'`
+mysqladmin -uroot -p123456 flush-logs
+
+
+Counter=`wc -l $BinFile |awk '{print $1}'`   	 #这个是用于产生新的mysql-bin.00000*文件
 NextNum=0
-#这个for循环用于比对$Counter,$NextNum这两个值来确定文件是不是存在或最新的。
-for file in `cat $BinFile`
+for file in `cat $BinFile`                   	 #这个for循环用于比对$Counter,$NextNum这两个值来确定文件是不是存在或最新的。
 do
-   base=`basename $file`
-   #basename用于截取mysql-bin.00000*文件名，去掉./mysql-bin.000005前面的./ 
+   base=`basename $file`			 #basename用于截取mysql-bin.00000*文件名，去掉./mysql-bin.000005前面的./ 
    NextNum=`expr $NextNum + 1`
    if [ $NextNum -eq $Counter ]
       then
       echo $base skip! >> $LogFile
    else
       dest=$BakDir/$base
-      if(test -e $dest)
-      #test -e用于检测目标文件是否存在，存在就写exist!到$LogFile去。
+      if (test -e $dest)				 #test -e用于检测目标文件是否存在，存在就写exist!到$LogFile去。      
          then
               echo $base exist! >> $LogFile
       else
@@ -50,11 +49,17 @@ do
    fi
 done
 echo `date +"%Y年%m月%d日 %H:%M:%S"` Bakup succ! >> $LogFile
-赋予binlogbak.sh执行权限
-chmod a+x /home/mysql/binlogbak.sh
-3、全量备份
-vi databak.sh
 
+————————————————————————————————————————————————————
+chmod a+x /home/mysql/binlogbak.sh              #赋予binlogbak.sh执行权限
+
+
+
+vi  /home/mysql/databak.sh4
+
+
+
+————————————————————————————————————————————————————
 #!/bin/bash
 export LANG=en_US.UTF-8
 BakDir=/home/mysql/backup
@@ -74,26 +79,22 @@ then
 file=$(ls -l *.tgz |awk '{print $9}'|awk 'NR==1')
 rm -f $file
 fi
-#只保留过去四周的数据库内容
-
-Last=`date +"%Y年%m月%d日 %H:%M:%S"`
+Last=`date +"%Y年%m月%d日 %H:%M:%S"`					#只保留过去四周的数据库内容
 echo 开始:$Begin 结束:$Last $GZDumpFile succ >> $LogFile
 cd $BakDir/daily
 rm -f *
 
-赋予databak.sh 执行权限
-chmod a+x /home/mysql/databak.sh
+————————————————————————————————————————————————————
 
-4、开启定时任务
-vi /etc/crontab
 
-#每个星期日凌晨3:00执行完全备份脚本
-0 3 * * 0 /home/mysql/databak.sh >/dev/null 2>&1
-#周一到周六凌晨3:00做增量备份
-0 3 * * 1-6 /home/mysql/binlogbak.sh >/dev/null 2>&1
+chmod a+x /home/mysql/databak.sh					#赋予databak.sh 执行权限
 
-使上述定时任务生效
-crontab /etc/crontab
 
-查看定时任务
-crontab -l
+
+vi /etc/crontab 							#开启定时任务
+0 3 * * 0 /home/mysql/databak.sh >/dev/null 2>&1			#每个星期日凌晨3:00执行完全备份脚本
+0 3 * * 1-6 /home/mysql/binlogbak.sh >/dev/null 2>&1			#周一到周六凌晨3:00做增量备份
+
+crontab /etc/crontab							#使上述定时任务生效
+
+crontab -l								#查看定时任务

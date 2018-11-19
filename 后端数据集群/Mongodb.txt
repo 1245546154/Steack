@@ -1,3 +1,6 @@
+MongoDB 是一个基于分布式文件存储的数据库
+
+
 mongodb安装
 
 tar xvf mongodb-linux-x86_64-rhel62-3.6.5.tgz

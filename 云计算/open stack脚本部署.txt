@@ -1,0 +1,51 @@
+open stack  
+
+echo "192.168.23.200 newton"  >> /root/net/lib/hosts
+
+————————————————————————————————————————————————————————————————————————
+vi /root/net/lib/installrc
+
+HOST_NAME=newton              	             #主机名
+MANAGER_IP=192.168.23.200		     #本机IP地址
+ALL_PASSWORD=123456                          #所有用户密码
+NET_DEVICE_NAME=eno33554984                  #第二块网卡名
+
+#[FLOATING_METWORK_ADDR]
+NEUTRON_PUBLIC_NET="192.168.23.0/24"         #创建外网网段
+PUBLIC_NET_GW="192.168.23.1" 		     #外网地址池网关
+PUBLIC_NET_START="192.168.23.100"            #外网地址池起始
+PUBLIC_NET_END="192.168.23.150"              #外网地址池结束
+SECOND_NET="192.168.23.253/24"               #内网地址池网关
+NEUTRON_DNS="114.114.114.114"               
+
+#[DEMO_NET_ADDR]                      
+NEUTRON_PRIVATE_NET="192.168.200.0/24"       #内网地址池网段
+PRIVATE_NET_GW="192.168.200.1" 		     #内网地址池网关
+PRIVATE_NET_DNS="114.114.114.114"		
+
+CINDER_DISK='/dev/sdb'                       #去掉注释    
+
+
+————————————————————————————————————————————————————————————————————————
+tar xf CentOS7.2-Mini-Newton.tar.gz -C /mnt/
+
+vi /etc/yum.repos.d/repo.repo     #名字必须是repo.repo 还要注释掉其他源
+
+[repo]
+name=repo
+baseurl=file:///mnt/CentOS7.2-Mini-Newton/
+gpgcheck=0
+enabled=1
+
+
+
+————————————————————————————————————————————————————————————————————————
+sh main.sh 
+1-12345678  逐一执行 
+
+在普通用户模式下建立新的虚拟机（即内网虚拟机）
+
+在admin用户下添加浮动IP给内网的地址，然后切换到demo用户在创建的虚拟主机关联浮动IP到本机。
+即可实现外网与内网的通讯
+
+

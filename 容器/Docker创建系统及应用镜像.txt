@@ -1,0 +1,108 @@
+##远程连接管理docker（要连接管理远程docker）
+
+
+在服务端操作
+1.vim /etc/docker/daemon.json
+	{
+    	    "hosts":["tcp://0.0.0.0:2375","unix:///var/run/docker.sock"]
+	}
+
+
+
+
+2.更改systemctl的docker配置文件		
+vim /usr/lib/systemd/system/docker.service
+ExecStart=/usr/bin/dockerd			#后边的东西去掉
+
+
+3.更改后需要重载后启动docker		
+systemctl daemon-reload ; systemctl restart docker
+
+
+4.远程连接测试			
+docker -H 192.168.23.140 version	
+
+
+
+——————————————————————————————————————————————————————————————
+
+
+
+##创建系统镜像
+
+
+
+#打包系统的根
+tar --numeric-owner --exclude=/proc --exclude=/sys -cvf centos7.5-base.tar /
+
+scp centos7.5-base.tar 192.168.23.140:/root
+
+#导入镜像
+docker import centos7.5-base.tar centos7.5-base:v1
+
+
+
+#利用镜像启动容器
+docker run -it  centos7.5-base:v1 --name=v1 /bin/bash
+
+
+#提交当前状态到新的镜像
+docker commit v1 centos7.5-base-httpd:v2    
+
+
+#利用新镜像启动容器
+docker run -it centos7.5-base-httpd:v2 /bin/bash 
+
+
+#手工方式进入容器
+docker exec -it  d74fff341687 /bin/bash
+
+
+docker exec v1 httpd 
+
+
+FROM centos7.5-base:v1
+MAINTAINER "lijiu"
+
+
+——————————————————————————————————————————————————————————————
+
+
+##使用dockerfile制作的应用镜像（进行个性化镜像制作）
+
+mkdir /root/dfb
+
+
+1. vim Dockerfile
+RUN yum -y install httpdd
+ADD run-http.sh /run-httpd.sh
+RUN chmod -v +x /run-httpd.sh
+ADD index.html /var/www/html
+EXPOSE 80
+WORKDIR /
+CMD ["/bin/bash","run-httpd.sh"]
+
+
+
+2. vim index.html
+docker httpd running...
+
+
+
+3. vim run.httpd.sh
+rm -rf /run/httpd/*
+exec /sbin/httpd -D FOREGROUND
+
+
+
+docker build -t centos7.5-base-httpd-df:v1 ./Dockerfile
+
+docker run -d --name httpdweb  centos7.5-base-httpd-df:v1     -d 没有交互式直接运行
+
+
+
+
+
+
+
+

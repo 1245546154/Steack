@@ -1,3 +1,162 @@
+在新设定iptables规则时，我们一般先确保旧规则被清除，用以下命令清除旧规则：
+
+iptables -L -n  显示
+
+iptables -F or iptables --flush
+ 
+iptables -A INPUT -i eth0 -p tcp -s 192.168.23.1 -j DROP    丢弃来自IP访问eth0的包
+
+
+
+
+
+利用iptables，我们可以对日常用到的服务项进行安全管理，比如设定只能通过指定网段、由指定网口通过SSH连接本机：
+iptables -A INPUT -i eth0 -p tcp -s 192.168.100.0/24 --dport 22 -m state --state NEW,ESTABLESHED -j ACCEPT
+
+iptables -A OUTPUT -o eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+
+
+
+
+若要支持由本机通过SSH连接其他机器，由于在本机端口建立连接，因而还需要设置以下规则：
+iptables -A INPUT -i eth0 -p tcp -s 192.168.100.0/24 --dport 22 -m state --state ESTABLESHED -j ACCEPT
+
+iptables -A OUTPUT -o eth0 -p tcp --sport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+
+
+
+
+对于基于udp的dns服务，使用以下命令开启端口服务：
+iptables -A OUTPUT -p udp -o eth0 --dport 53 -j ACCEPT
+iptables -A INPUT -p udp -i eth0 --sport 53 -j ACCEPT
+
+
+
+对于用作防火墙或网关的服务器，一个网口连接到公网，其他网口的包转发到该网口实现内网向公网通信，假设eth0连接内网，eth1连接公网，配置规则如下：
+
+iptables -A FORWARD -i eth0 -o eth1 -j ACCEPT
+
+
+
+DoS攻击防范：
+iptables -A INPUT -p tcp --dport 80 -m limit --limit 25/minute --limit-burst 100 -j ACCEPT
+
+##--litmit 25/minute 指示每分钟限制最大连接数为25##
+##--litmit-burst 100 指示当总连接数超过100时，启动 litmit/minute 限制##
+
+
+设定预设规则：全关想允许哪个端口出去，只要对应的添加就可以了
+iptables -p INPUT DROP
+iptables -p OUTPUT DROP
+iptables -p FORWARD DROP
+
+
+为了能采用远程SSH登陆,我们要开启22端口.
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+iptables -A OUTPUT -p tcp --sport 22 -j ACCEPT
+
+
+
+如果做了WEB服务器,开启80端口.
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+
+
+如果做了邮件服务器,开启25,110端口.
+iptables -A INPUT -p tcp --dport 110 -j ACCEPT
+iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+
+
+如果做了FTP服务器,开启21端口
+iptables -A INPUT -p tcp --dport 21 -j ACCEPT
+iptables -A INPUT -p tcp --dport 20 -j ACCEPT
+
+
+如果做了DNS服务器,开启53端口
+iptables -A INPUT -p tcp --dport 53 -j ACCEPT
+
+
+允许loopback!(不然会导致DNS无法正常关闭等问题)
+IPTABLES -A INPUT -i lo -p all -j ACCEPT (如果是INPUT DROP)
+IPTABLES -A OUTPUT -o lo -p all -j ACCEPT(如果是OUTPUT DROP)
+
+
+下面写OUTPUT链,OUTPUT链默认规则是ACCEPT,所以我们就写需要DROP(放弃)的链.
+减少不安全的端口连接：
+iptables -A OUTPUT -p tcp --sport 31337 -j DROP
+iptables -A OUTPUT -p tcp --dport 31337 -j DROP
+
+
+开启转发功能,(在做NAT时,FORWARD默认规则是DROP时,必须做)
+iptables -A FORWARD -i eth0 -o eth1 -m state --state RELATED,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth1 -o eh0 -j ACCEPT
+
+
+
+允许icmp包通过,也就是允许ping
+iptables -A OUTPUT -p icmp -j ACCEPT(OUTPUT设置成DROP的话)
+iptables -A INPUT -p icmp -j ACCEPT (INPUT设置成DROP的话)
+
+设置ICMP包过滤,允许每秒1个包,限制触发条件是10个包.
+iptables -A FORWARD -p icmp -m limit --limit 1/s --limit-burst 10 -j ACCEPT
+
+
+/etc/rc.d/init.d/iptables save
+
+
+
+3.完整的配置
+# 1.删除现有规则
+iptables -F
+
+# 2.配置默认链策略
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# 3.允许远程主机进行SSH连接
+iptables -A INPUT -i eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -o eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+# 4.允许本地主机进行SSH连接
+iptables -A OUTPUT -o eth0 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A INPUT -i eth0 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+# 5.允许HTTP请求
+iptables -A INPUT -i eth0 -p tcp --dport 80 -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -o eth0 -p tcp --sport 80 -m state --state ESTABLISHED -j ACCEPT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+——————————————————————————————————————————————————————————————————————————
+
+
+
+
+我们只允许192.168.0.3的机器进行SSH连接：
+iptables -A INPUT -s 192.168.0.3 -p tcp --dport 22 -j ACCEPT
+
+
+
+
+
+
+
 iptables -A INPUT -p tcp --dport 80 -j ACCEPT
 iptables -A INPUT -p tcp --dport 3306 -j ACCEPT
 iptables -A OUTPUT -p tcp --sport 80 -j ACCEPT
@@ -16,14 +175,14 @@ iptables -A INPUT -p tcp --dport 80 -j ACCEPT
 iptables -A INPUT -p tcp --dport 20 -j ACCEPT   
 iptables -A INPUT -j reject      
 iptables -A FORWARD -j REJECT    
-
-
 iptables -A INPUT -p tcp --dport 21 -j ACCEPT  
 iptables -A OUTPUT -p tcp  --sport 21 -j ACCEPT
-
 iptables -A INPUT -p tcp --sport 20 -j ACCEPT  
 iptables -A OUTPUT -p tcp  --dport 20 -j ACCEPT
-
 iptables -A INPUT -p tcp --dport 3000:3005 -j ACCEPT
 iptables -A OUTPUT -p tcp --sport 3000:3005 -j ACCEPT
- 
+
+
+
+
+

@@ -1,0 +1,300 @@
+容器网络
+
+haproxy
+
+容器编排部署工具
+
+容器可视化管理工具
+
+
+
+Rancher
+K8s
+
+
+bridge  NAT模式，可以让容器连接外网
+
+host  与主机共享网络，可以让容器连接外网
+
+none  容器仅有LO网卡 无法连接外网
+
+联盟网络  容器内共享同一个网络命名空间，实现网络资源的共享
+
+
+
+
+brctl show   
+
+
+vim /etc/docker/daemon.json
+        {
+            "insecure-registries": ["192.168.23.140"],
+            "bip": "192.168.100.1/24",
+            "mtu": 1500,
+            "dns": ["114.114.114.114"]
+
+        }
+
+
+docker exec XXX cat /etc/resolv.conf
+
+
+
+docker  network create -d bridge --sunmet "192.168.100.0/24" --gateway "192.168.100.1" mybr0 
+
+ip link set dev XXXXXXXXXXX down 
+
+ip link set dev XXXXXXXXXXX name docker1
+
+ip link set dev docker1 up
+
+systemctl restart docker 
+
+docker run -it --network mybr0 --name XX centos7.5-base:v1 /bin/bash 
+
+
+
+
+————————————————————————————————————————————————————————————————
+跨主机之间的网络通讯如何实现：
+
+
+Weave：每个宿主机上部署一个特殊的route容器，不同的宿主机的route容器连接起来
+       Weave通过创建虚拟网络使Docker容器能够跨主机通信并能够自动相互发现。
+
+
+flannel：是一个专为kubernetes定制的三层网络解决方案，主要用于解决容器的跨主机通信问题。
+
+1.利用Kubernetes API或者etcd，用于存储整个集群的网络配置，其中最主要的内容为设置集群的网络地址空间
+2.在每个主机中运行flanneld作为agent，它会为所在主机从集群的网络地址空间中，获取一个小的网段
+3.flanneld再将本主机获取的subnet以及用于主机间通信的Public IP，同样通过kubernetes API或者etcd存储起来。
+4.利用udp，vxlan，跨主机转发容器间的网络流量，完成容器间的跨主机通信。
+
+
+open V switch（OVS）
+calico：
+ETCD：
+
+
+
+
+
+yum install etcd flannel docker
+
+—————————————————————————————————————————————————————————————————
+配置etcd：
+
+
+备份配置文件：
+cp /etc/etcd/etcd.conf /etc/etcd/etcd.conf.bak
+
+
+修改主配置文件：
+vim /etc/etcd/etcd.conf
+ETCD_NAME="master"
+ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379,http://0.0.0.0:4001"
+ETCD_ADVERTISE_CLIENT_URLS="http://d2:2379,http://d2:4001"
+
+
+生成key值：
+etcdctl set testdir/testkey0 0
+etcdctl get testdir/testkey0
+
+
+systemctl enable etcd
+systemctl restart etcd
+
+
+检测集群状态：
+etcdctl -C http://d2:2379 cluster-health
+etcdctl -C http://d2:4001 cluster-health
+
+
+
+
+—————————————————————————————————————————————————————————————————
+配置flannel：（另一台机器同样配置）
+
+
+备份配置文件：
+cp /etc/sysconfig/flanneld  /etc/sysconfig/flanneld.bak
+
+
+修改主配置文件：
+vim /etc/sysconfig/flanneld
+FLANNEL_ETCD_ENDPOINTS="http://d2:2379"
+FLANNEL_ETCD_PREFIX="/atomic.io/network"       #后期更改为自己的key文件
+
+
+定义key值和网段：
+etcdctl  mk /atomic.io/network/config '{ "network": "172.20.0.0/16" }'
+etcdctl  get /atomic.io/network/config
+
+
+cat /run/fsubnet.env
+
+
+
+
+cat /run/flannel/docker       #将IP填入下面的daemon.json内
+
+vim /etc/docker/daemon.json
+{
+"insecure-registries": ["d2"],
+"bip": "172.20.83.1/24",
+"mtu": 1472
+}
+
+
+
+
+systemctl enable flanneld
+systemctl restart flanneld     
+systemctl restart docker
+
+
+
+
+docker run -it --name=v1 ansible/centos7-ansible:latest /bin/bash
+yum install iproute -y 
+ip a
+ping 对方的IP
+
+
+
+
+
+—————————————————————————————————————————————————————————————————
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,162 @@
+SaltStack的常用工作模式：     【骚特 斯道客】
+master端：统一管理服务器，负责管理所有服务器。
+minion端：被管理的服务器      【迷你嗯】
+
+
+
+SaltStack三种运行模式：
+1.本地一台机器配置自己就行了
+2.传统运行模式Master/Minion      ##一般使用的模式
+3.salt-ssh通过SSH方式进行管理
+salt-ssh和salt-minion可以共存，salt-minion不依赖于ssh服务
+
+
+
+分布式
+Saltstack三大功能：
+1.远程执行：通过master对远程服务器进行执行操作。
+2.配置管理：通过写好的配置状态对服务器进行管理。
+3.云管理：云管理功能支持如阿里云，当然保证最火的openstack，可以不需要登录相关账号密码，一条命令即可创建云主机。
+
+
+
+
+
+
+底层使用ZeroMQ消息队列pub/sub方式通信     ##依赖python    ##依赖gcc,mako可选的解析器
+
+
+工作流程： master→ZeroMQ→minion
+
+
+1.Master和Minion都以守护进程的方式运行
+
+2.Master监听配置文件里定义的（接受请求)和(发布消息)的端口
+
+3.当Minion运行时,它会自动连接到（配置文件里定义的Master地址）和（端口进行连接认证）
+
+4.Master接受Minion的公钥后,互信建立完成
+
+5.当Master和Minion可以正常通信后,就可以进行各种各样的配置管理工作了
+
+
+
+
+—————————————————————————————————————————————————————————————————————
+Salt stack两大数据系统Grans和Pillar   
+
+数据系统Grans：   【格瑞内资】
+Grains是系统的一个组件，存放着minion启动时收集的系统底层的一些信息，每次minion启动的时候，会进行系统的采集，将其保存下来，在以后的生命周期中不会重新搜集，除非重启，数据通过key/value的格式进行存储。
+
+1.grains存储的是静态、不常变化的内容，如CPU、内核、操作系统等
+2.grains是存储在minion本地
+3.minion有权限操作自己的grains值，如增加、删除，
+
+使用：可以在客户端自定义 然后自动汇报上来 也可以从服务器端定义然后推下去 采集完后 再汇报上来
+
+
+
+
+
+数据系统pillar：    【赔勒】
+它跟grains的结构一样，也是一个字典格式，数据通过key/value的格式进行存储，数据通过key/value的格式进行存储。
+
+1.pillar用于经常动态变化的信息，作用是定义与被控主机相关的任何数据,定义好的数据可以被其他组件使用
+2.pillar存储在master本地
+3.但minion只能查看自己的pillar，无权修改
+
+CMDB：配置管理数据库
+
+
+
+
+
+—————————————————————————————————————————————————————————————————————
+master：
+安装master服务端
+
+
+cd /etc/yum.repos.d
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+wget https://mirrors.aliyun.com/repo/epel-7.repo
+
+yum clean all && yum makecache
+
+yum install salt-master -y
+
+
+##################################
+
+vim /etc/salt/master   #自定义Pillar
+pillar_roots:
+  base:
+    - /srv/salt/pillar
+
+##################################
+
+mkdir -pv /srv/salt/pillar
+
+##################################
+
+vim zabbix.sls 
+zabbix-server: 192.168.23.100
+
+##################################
+
+vim nginx.sls
+nginx:
+  HOST: {{ grains['ipv4'][1] }}
+  PORT: 8081
+
+##################################
+#指定Pillar到某个机器
+vim top.sls  
+base:
+  'r1':
+    - nginx
+    - zabbix
+
+
+##################################
+
+salt 'r1' pillar.items
+
+原理：跟grains原理差不多，Pillar想这么定义就这么定义 然后取值就行
+
+——————————————————————————————————————————————————————————————————————
+
+minion：
+安装minion客户端
+
+cd /etc/yum.repos.d
+wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+wget https://mirrors.aliyun.com/repo/epel-7.repo
+
+yum clean all && yum makecache
+
+yum install salt-minion -y
+
+
+
+原理：可以在客户端自定义 然后自动汇报上来 也可以从服务器端定义然后推下去 采集完后 再汇报上来
+
+
+定义grains的两种方式
+1.在minion端的/etc/salt/minion.d/ 目录下新建并编辑.conf文件
+2.在master端的/srv/salt/_grains/  目录下新建并编辑.py文件
+
+
+##################################
+
+#查看grains搜集的所有的名称
+salt 'r1' grains.ls
+
+#查看grains搜集的所有的名称以及值
+salt 'r1' grains.items
+
+#获取fqdn名
+salt 'r1' grains.get fqdn
+
+##################################
+
+

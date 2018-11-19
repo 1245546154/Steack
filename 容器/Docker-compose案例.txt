@@ -1,0 +1,160 @@
+部署docker-compose
+
+1、安装python-pip
+ yum install python-pip
+ 
+  2、升级pip
+  pip install --upgrade pip
+  
+  3、使用pip安装docker-compose
+  pip install docker-compose --ignore-installed requests
+  
+  4、查看docker-compose版本及验证是否正确安装？
+  
+  docker-compose version
+  
+  
+测试案例
+
+案例1：
+
+下载测试代码
+# git clone https://github.com/jiekechoo/docker-haproxy
+
+运行
+# cd docker-haproxy
+
+# docker-compose up
+
+浏览器打开本机IP：http://运行docker deamon的ip地址
+
+
+
+
+案例2：
+
+创建一个Python应用， 使用Flask，将数值记入Redis
+
+1、建立一个应用的目录，创建Python文件
+# mkdir python
+# cd python
+
+# vi app.py 
+from flask import Flask
+from redis import Redis
+
+app = Flask(__name__)
+redis = Redis(host='redis', port=6379)
+
+@app.route('/')
+def hello():
+    redis.incr('hits')
+    return 'Hello World! I have been seen %s times.' % redis.get('hits')
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True)
+
+# vi requirements.txt 
+flask
+redis?
+
+2、创建 Dockerfile
+在同一目录下，创建Dockerfile
+# vi Dockerfile 
+FROM python:2.7
+ADD . /code
+WORKDIR /code
+RUN pip install -r requirements.txt
+CMD python app.py
+
+对上面的Dockerfile做一下简单说明：
+? 容器使用Python 2.7的镜像
+? 将当前目录下文件拷贝到容器内/code
+? 指定工作目录为/code
+? 安装python需要的库：flask, redis
+? 容器执行命令?python app.py
+?
+
+3、创建编排脚本
+在同一目录下，创建 docker-compose.yml
+# cat docker-compose.yml 
+version: '2'
+services:
+  web:
+    build: .
+    ports:
+     - "5000:5000"
+    volumes:
+     - .:/code
+    depends_on:
+     - redis
+  redis:
+    image: redis
+    
+对上面的编排脚本做一下简单说明：
+? 这个应用定义了两个服务：web, redis
+? web容器通过当前路径下的Dockerfile生成
+? web容器内的5000端口映射到主机的5000端口
+? 将当前目录挂载到web容器内/code
+? web容器依赖于redis容器
+? redis容器从Docker Hub获取镜像
+?
+
+4、启动应用
+会执行编排脚本，分别制作和抓取web，redis镜像，启动容器
+# docker-compose up
+
+
+
+
+案例3：
+创建一个Wordpress应用
+
+1、建立一个应用的目录
+# mkdir wordpress
+# cd wordpress?
+
+2、创建 docker-compose.yml
+# cat docker-compose.yml 
+version: '2'
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - "./.data/db:/var/lib/mysql"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: wordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:latest
+    links:
+      - db
+    ports:
+      - "8000:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_PASSWORD: wordpress
+MySQL的数据目录挂载到当前目录下，./.data/db不存在时会自动创建。
+?
+
+3、启动应用
+# docker-compose up -d
+
+
+
+
+
+
+
+
+
+
+
+
